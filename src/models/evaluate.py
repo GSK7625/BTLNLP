@@ -50,7 +50,6 @@ def print_comparison_table(results: list[dict]):
 
     print("─"*80)
     print("\n  * EM = Exact Match (%), F1 = Token F1 (%)")
-    print("  * [MR] = Generative reader (LLM-based comparison, khác cơ chế với extractive QA)")
 
     # In markdown table cho báo cáo
     print("\n\n  [MARKDOWN TABLE cho báo cáo]")
@@ -122,36 +121,39 @@ def run_comparison(data_path: str, num_samples: int, batch_size: int,
             'note': '← Sẽ điền sau khi fine-tune xong'
         })
 
-    # ---- Qwen2.5 Generative Reader ----
-    qwen_json = data_path.replace('.json', '_qwen_results.json')
-    if os.path.exists(qwen_json):
-        try:
-            with open(qwen_json, encoding='utf-8') as f:
-                qwen_data = json.load(f)
-            results.append({
-                'name': '[MR] Qwen2.5 + BM25 (Generative reader)',
-                'em': qwen_data.get('exact_match', 'N/A'),
-                'f1': qwen_data.get('token_f1', 'N/A'),
-                'note': 'Generative LLM — khác cơ chế, nhánh so sánh mở rộng'
-            })
-        except Exception as e:
-            results.append({
-                'name': '[MR] Qwen2.5 + BM25 (Generative reader)',
-                'em': 'Error', 'f1': 'Error',
-                'note': f'Lỗi đọc file kết quả: {e}'
-            })
-    else:
+    # ---- Pipeline Retriever-Reader ----
+    print("\n" + "="*60)
+    print("  Chạy hệ thống kết hợp Retriever-Reader...")
+    print("="*60)
+    try:
+        from src.models.pipeline_retriever_reader import evaluate_pipeline
+        # Run for Pretrained Pipeline
+        res_pre_p = evaluate_pipeline(data_path, model_b2, num_samples, batch_size)
         results.append({
-            'name': '[MR] Qwen2.5 + BM25 (Generative reader)',
-            'em': 'N/A', 'f1': 'N/A',
-            'note': 'Generative LLM — chưa có kết quả đánh giá (chạy baseline_qwen.py)'
+            'name': 'BM25 + XLM-R Pretrained (Pipeline)',
+            'em': res_pre_p['exact_match'],
+            'f1': res_pre_p['token_f1'],
+            'note': f"BM25 Retriever + Pretrained Reader - BM25 Acc: {res_pre_p['retriever_accuracy']:.2f}%"
         })
+        
+        # Run for Fine-tuned Pipeline if model_finetuned is provided
+        if model_finetuned:
+            res_ft_p = evaluate_pipeline(data_path, model_finetuned, num_samples, batch_size)
+            results.append({
+                'name': 'BM25 + XLM-R Fine-tuned (Pipeline M1)',
+                'em': res_ft_p['exact_match'],
+                'f1': res_ft_p['token_f1'],
+                'note': f"BM25 Retriever + M1 Reader - BM25 Acc: {res_ft_p['retriever_accuracy']:.2f}%"
+            })
+    except Exception as e:
+        print(f"  [WARN] Lỗi khi chạy đánh giá Pipeline: {e}")
 
     # In bảng so sánh
     print_comparison_table(results)
 
     # Lưu tổng hợp
-    summary_path = str(Path(data_path).parent / 'comparison_results.json')
+    suffix = f"_comparison_{num_samples}samples_results.json" if num_samples else "_comparison_results.json"
+    summary_path = str(Path(data_path).parent / suffix)
     with open(summary_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     print(f"  Tổng hợp đã lưu: {summary_path}")
@@ -178,25 +180,42 @@ if __name__ == '__main__':
                         default='data/processed/test_clean_bm25only_results.json')
     parser.add_argument('--b2_json', type=str,
                         default='data/processed/test_clean_pretrained_deepset_xlm-roberta-base-squad2_results.json')
-    parser.add_argument('--m1_json', type=str, default=None,
+    parser.add_argument('--m1_json', type=str,
+                        default='data/processed/test_clean_finetuned_results.json',
                         help='File kết quả M1 (sau khi fine-tune trên GPU xong)')
-    parser.add_argument('--qwen_json', type=str,
-                        default='data/processed/test_clean_qwen_results.json',
-                        help='File kết quả Qwen2.5')
+    parser.add_argument('--pipeline_json', type=str,
+                        default='data/processed/test_clean_pipeline_results.json',
+                        help='File kết quả Pipeline Retriever-Reader')
     args = parser.parse_args()
 
     if args.from_results:
+        # Ánh xạ động đường dẫn nếu để mặc định và có num_samples
+        b1_path = args.b1_json
+        if b1_path == 'data/processed/test_clean_bm25only_results.json' and args.num_samples:
+            b1_path = args.data.replace('.json', f'_bm25only_{args.num_samples}samples_results.json')
+
+        b2_path = args.b2_json
+        if b2_path == 'data/processed/test_clean_pretrained_deepset_xlm-roberta-base-squad2_results.json' and args.num_samples:
+            model_tag = args.model_b2.replace('/', '_')
+            b2_path = args.data.replace('.json', f'_pretrained_{model_tag}_{args.num_samples}samples_results.json')
+
+        m1_path = args.m1_json
+        if m1_path == 'data/processed/test_clean_finetuned_results.json' and args.num_samples:
+            m1_path = args.data.replace('.json', f'_finetuned_{args.num_samples}samples_results.json')
+
+        pipeline_path = args.pipeline_json
+        if pipeline_path == 'data/processed/test_clean_pipeline_results.json' and args.num_samples:
+            pipeline_path = args.data.replace('.json', f'_pipeline_{args.num_samples}samples_results.json')
+
         # Đọc kết quả có sẵn từ file JSON
         results = []
         for path, name, note in [
-            (args.b1_json,  'B1: BM25-Only (Rule-based)',
+            (b1_path,  'B1: BM25-Only (Rule-based)',
              'Baseline tối thiểu — không dùng model'),
-            (args.b2_json,  'B2: XLM-RoBERTa Pretrained (SQuAD2)',
+            (b2_path,  'B2: XLM-RoBERTa Pretrained (SQuAD2)',
              'Off-the-shelf, chưa fine-tune trên ViSpanExtractQA'),
-            (args.m1_json,  'M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)',
+            (m1_path,  'M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)',
              'Phương pháp chính — fine-tuned trên dữ liệu sạch'),
-            (args.qwen_json, '[MR] Qwen2.5 + BM25 (Generative reader)',
-             'Generative LLM — khác cơ chế, nhánh so sánh mở rộng'),
         ]:
             if path and os.path.exists(path):
                 data = load_result(path)
@@ -210,6 +229,36 @@ if __name__ == '__main__':
             else:
                 results.append({'name': name, 'em': 'N/A', 'f1': 'N/A', 'note': '← Chưa có kết quả'})
                 print(f"  - Chưa có: {path}")
+
+        # Đọc kết quả Pipeline nếu có
+        if pipeline_path and os.path.exists(pipeline_path):
+            try:
+                pipeline_data = load_result(pipeline_path)
+                print(f"  ✓ Đọc kết quả Pipeline: {pipeline_path}")
+                
+                # Pretrained Pipeline
+                if pipeline_data.get('pretrained_pipeline'):
+                    pre_p = pipeline_data['pretrained_pipeline']
+                    results.append({
+                        'name': 'BM25 + XLM-R Pretrained (Pipeline)',
+                        'em': pre_p.get('exact_match', 'N/A'),
+                        'f1': pre_p.get('token_f1', 'N/A'),
+                        'note': f"BM25 Retriever + Pretrained Reader - BM25 Acc: {pre_p.get('retriever_accuracy', 0):.2f}%"
+                    })
+                
+                # Finetuned Pipeline
+                if pipeline_data.get('finetuned_pipeline'):
+                    ft_p = pipeline_data['finetuned_pipeline']
+                    results.append({
+                        'name': 'BM25 + XLM-R Fine-tuned (Pipeline M1)',
+                        'em': ft_p.get('exact_match', 'N/A'),
+                        'f1': ft_p.get('token_f1', 'N/A'),
+                        'note': f"BM25 Retriever + M1 Reader - BM25 Acc: {ft_p.get('retriever_accuracy', 0):.2f}%"
+                    })
+            except Exception as e:
+                print(f"  - Lỗi khi đọc kết quả Pipeline: {e}")
+        else:
+            print(f"  - Chưa có hoặc không tìm thấy kết quả Pipeline: {pipeline_path}")
 
         print_comparison_table(results)
     else:

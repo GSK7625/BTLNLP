@@ -356,7 +356,8 @@ def evaluate_finetuned(model_path: str, test_data_path: str,
         'token_f1': round(avg_f1, 4),
         'error_analysis': error_cases,
     }
-    out = test_data_path.replace('.json', '_finetuned_results.json')
+    suffix = f"_finetuned_{num_samples}samples_results.json" if num_samples else "_finetuned_results.json"
+    out = test_data_path.replace('.json', suffix)
     with open(out, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     print(f"  Kết quả lưu: {out}")

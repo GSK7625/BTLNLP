@@ -131,12 +131,25 @@ python src/models/train.py \
     --learning_rate 2e-5 \
     --output_dir models/xlmroberta_finetuned
 
-# Bước 4: Chạy đánh giá và so sánh tổng hợp trên 500 mẫu test set
-python src/models/evaluate.py --from_results
+# Bước 4: Đánh giá mô hình tại các mốc mẫu khác nhau (500 mẫu hoặc 5000 mẫu)
+# Hệ thống sẽ tự động thêm hậu tố số lượng mẫu vào file kết quả để tránh ghi đè (ví dụ: _500samples_results.json)
 
-# Bước 5: Chạy xuất tệp phân tích lỗi CSV định lượng
+# Mốc 500 mẫu (Thực nghiệm nhanh):
+python src/models/baseline_bm25.py --num_samples 500
+python src/models/baseline_pretrained.py --num_samples 500
+python src/models/pipeline_retriever_reader.py --num_samples 500
+python src/models/evaluate.py --num_samples 500 --from_results
+
+# Mốc 5000 mẫu (Kiểm chứng quy mô lớn):
+python src/models/baseline_bm25.py --num_samples 5000
+python src/models/baseline_pretrained.py --num_samples 5000
+python src/models/pipeline_retriever_reader.py --num_samples 5000 --batch_size 32
+python src/models/evaluate.py --num_samples 5000 --from_results
+
+# Bước 5: Chạy xuất tệp phân tích lỗi CSV định lượng cho mốc 500 mẫu
 python src/models/error_analysis.py \
-    --m1_results data/processed/test_clean_finetuned_results.json
+    --m1_results data/processed/test_clean_finetuned_500samples_results.json \
+    --output_csv error_analysis_500.csv
 
 # Bước 6: Khởi động Flask Web Demo (chạy trên http://127.0.0.1:5000)
 python src/web/web_demo.py
@@ -151,8 +164,10 @@ Các mô hình được đánh giá nghiêm ngặt trên **500 mẫu** ngẫu nh
 | Mô hình | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
 | :--- | :---: | :---: | :---: | :--- |
 | **B1: BM25-Only (Rule-based)** | 0.80 | 24.31 | Khớp từ khóa | Trả về cả câu chứa từ khóa nhiều nhất (chưa trích xuất span). |
-| **B2: XLM-RoBERTa Pretrained** | 44.60 | 70.39 | Trích xuất (SQuAD2) | Model mặc định chưa thích nghi sâu ngữ cảnh Việt hóa. |
-| **M1: XLM-RoBERTa Fine-tuned** | **47.60** | **70.52** | **Trích xuất tối ưu** | **Huấn luyện trực tiếp trên tập dữ liệu tiếng Việt sạch.** |
+| **B2: XLM-RoBERTa Pretrained** | 44.60 | 70.39 | Trích xuất (SQuAD2) | Model mặc định chưa thích nghi sâu ngữ cảnh Việt hóa (Reader-only). |
+| **M1: XLM-RoBERTa Fine-tuned** | **47.60** | **70.52** | **Trích xuất tối ưu** | **Huấn luyện trực tiếp trên tập dữ liệu tiếng Việt sạch (Reader-only).** |
+| **BM25 + XLM-R Pretrained (Pipeline)** | **58.00** | **81.68** | **Kênh kết hợp** | **Hệ thống kết hợp (BM25 Retriever + Pretrained Reader - test 50 mẫu).** |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **64.00** | **79.16** | **Kênh kết hợp** | **Hệ thống kết hợp đề xuất (BM25 Retriever + M1 Reader - test 50 mẫu).** |
 | *[MR] Qwen2.5-Instruct* | *80.00* | *95.00* | *Sinh văn bản* | *Thử nghiệm so sánh mở rộng trên 5 mẫu (độ trễ cao hơn).* |
 
 * **Exact Match (EM)**: Tỷ lệ phần trăm câu trả lời dự đoán trùng khớp hoàn toàn từng ký tự với nhãn gốc (sau khi chuẩn hóa).

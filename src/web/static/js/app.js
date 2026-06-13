@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkBm25 = document.getElementById('model-bm25');
     const checkPretrained = document.getElementById('model-pretrained');
     const checkFinetuned = document.getElementById('model-finetuned');
-    const checkQwen = document.getElementById('model-qwen');
     
     const btnSubmit = document.getElementById('btn-submit');
     const btnClear = document.getElementById('btn-clear');
@@ -22,16 +21,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardBm25 = document.getElementById('card-bm25');
     const cardPretrained = document.getElementById('card-pretrained');
     const cardFinetuned = document.getElementById('card-finetuned');
-    const cardQwen = document.getElementById('card-qwen');
     
+    // Mode toggling
+    const modeReaderOnly = document.getElementById('mode-reader-only');
+    const modeRetrieverReader = document.getElementById('mode-retriever-reader');
+    const contextGroup = document.getElementById('context-group');
+    const retrieverNotice = document.getElementById('retriever-notice');
+
     // Tabs
     const tabBtns = document.querySelectorAll('.tab-btn');
     const highlightViewer = document.getElementById('highlight-viewer');
+    
+    // Retrieved Contexts DOM elements
+    const retrievedContextsSection = document.getElementById('retrieved-contexts-section');
+    const retrievedContextsList = document.getElementById('retrieved-contexts-list');
     
     // State variables
     let preloadedExamples = [];
     let currentResults = null;
     let activeTabModel = 'bm25'; // Default active tab
+    let currentMode = 'reader'; // 'reader' or 'pipeline'
+    let currentContext = '';
+    let currentRetrievedContexts = [];
 
     // Initialize - Load preloaded examples
     fetch('/api/examples')
@@ -65,6 +76,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Handle Mode toggling
+    modeReaderOnly.addEventListener('click', () => {
+        currentMode = 'reader';
+        modeReaderOnly.classList.add('active');
+        modeRetrieverReader.classList.remove('active');
+        contextGroup.style.display = 'block';
+        retrieverNotice.style.display = 'none';
+        
+        // Reset state
+        emptyState.style.display = 'flex';
+        resultsContent.style.display = 'none';
+        currentResults = null;
+        currentContext = '';
+        currentRetrievedContexts = [];
+        retrievedContextsSection.style.display = 'none';
+    });
+
+    modeRetrieverReader.addEventListener('click', () => {
+        currentMode = 'pipeline';
+        modeRetrieverReader.classList.add('active');
+        modeReaderOnly.classList.remove('active');
+        contextGroup.style.display = 'none';
+        retrieverNotice.style.display = 'block';
+        
+        // Reset state
+        emptyState.style.display = 'flex';
+        resultsContent.style.display = 'none';
+        currentResults = null;
+        currentContext = '';
+        currentRetrievedContexts = [];
+        retrievedContextsSection.style.display = 'none';
+    });
+
     // Handle example selection
     exampleSelect.addEventListener('change', (e) => {
         const selectedId = e.target.value;
@@ -97,8 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const context = contextInput.value.trim();
         const gold = goldInput.value.trim();
         
-        if (!question || !context) {
-            alert('Vui lòng nhập đầy đủ câu hỏi và đoạn ngữ cảnh.');
+        if (!question) {
+            alert('Vui lòng nhập câu hỏi.');
+            return;
+        }
+        
+        if (currentMode === 'reader' && !context) {
+            alert('Vui lòng nhập đoạn ngữ cảnh.');
             return;
         }
 
@@ -106,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (checkBm25.checked) models.push('bm25');
         if (checkPretrained.checked) models.push('pretrained');
         if (checkFinetuned.checked) models.push('finetuned');
-        if (checkQwen.checked) models.push('qwen');
         
         if (models.length === 0) {
             alert('Vui lòng chọn ít nhất một phương pháp để chạy.');
@@ -118,13 +166,25 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSubmit.disabled = true;
         
         try {
-            const response = await fetch('/api/predict', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question, context, models, gold })
-            });
+            let response, data;
+            if (currentMode === 'reader') {
+                response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, context, models, gold })
+                });
+                data = await response.json();
+                currentContext = context;
+            } else {
+                response = await fetch('/api/predict_pipeline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, models, gold })
+                });
+                data = await response.json();
+                currentContext = data.retrieved_context;
+            }
             
-            const data = await response.json();
             if (data.error) {
                 alert('Có lỗi xảy ra: ' + data.error);
                 return;
@@ -139,6 +199,30 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update the metrics cards
             updateMetricCards(models, currentResults);
             
+            // Add custom log about retrieval if in pipeline mode
+            if (currentMode === 'pipeline') {
+                const badge = document.createElement('div');
+                badge.style.width = '100%';
+                badge.style.padding = '8px 12px';
+                badge.style.background = 'rgba(6, 182, 212, 0.15)';
+                badge.style.border = '1px solid var(--accent-color)';
+                badge.style.borderRadius = 'var(--radius-sm)';
+                badge.style.color = '#22d3ee';
+                badge.style.fontSize = '12px';
+                badge.style.marginBottom = '12px';
+                badge.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> BM25 đã truy hồi đoạn văn này từ kho tài liệu trong <strong>${data.retrieval_latency_ms}ms</strong>.`;
+                
+                // Remove existing notice badges in section
+                const existing = highlightViewer.parentNode.querySelector('.retrieval-badge');
+                if (existing) existing.remove();
+                
+                badge.className = 'retrieval-badge';
+                highlightViewer.parentNode.insertBefore(badge, highlightViewer);
+            } else {
+                const existing = highlightViewer.parentNode.querySelector('.retrieval-badge');
+                if (existing) existing.remove();
+            }
+
             // Auto switch active tab to one of the selected models
             if (models.includes(activeTabModel)) {
                 // keep current active tab
@@ -158,7 +242,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Render text highlighting
-            renderHighlight(context, activeTabModel);
+            const contextToRender = currentResults[activeTabModel] && currentResults[activeTabModel].selected_context 
+                ? currentResults[activeTabModel].selected_context 
+                : currentContext;
+            renderHighlight(contextToRender, activeTabModel);
+            
+            // Render Top-3 retrieved contexts list
+            if (currentMode === 'pipeline') {
+                retrievedContextsSection.style.display = 'block';
+                currentRetrievedContexts = data.retrieved_contexts || [];
+                renderRetrievedContextsList(currentRetrievedContexts, activeTabModel);
+            } else {
+                retrievedContextsSection.style.display = 'none';
+                currentRetrievedContexts = [];
+            }
             
         } catch (err) {
             console.error(err);
@@ -175,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cardBm25.style.display = selectedModels.includes('bm25') ? 'flex' : 'none';
         cardPretrained.style.display = selectedModels.includes('pretrained') ? 'flex' : 'none';
         cardFinetuned.style.display = selectedModels.includes('finetuned') ? 'flex' : 'none';
-        cardQwen.style.display = selectedModels.includes('qwen') ? 'flex' : 'none';
         
         // Populate BM25
         if (selectedModels.includes('bm25') && results.bm25) {
@@ -202,15 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('lat-finetuned').textContent = `${res.latency_ms}ms`;
             document.getElementById('conf-finetuned').textContent = res.confidence !== undefined ? res.confidence.toFixed(3) : 'N/A';
             updateGoldBadges('finetuned', res);
-        }
-
-        // Populate Qwen
-        if (selectedModels.includes('qwen') && results.qwen) {
-            const res = results.qwen;
-            document.getElementById('ans-qwen').textContent = res.answer || '(Trống)';
-            document.getElementById('lat-qwen').textContent = `${res.latency_ms}ms`;
-            document.getElementById('conf-qwen').textContent = res.confidence !== undefined ? res.confidence.toFixed(3) : 'N/A';
-            updateGoldBadges('qwen', res);
         }
     }
 
@@ -250,6 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render highlighted context text
     function renderHighlight(context, modelKey) {
+        if (!context) {
+            highlightViewer.textContent = '';
+            return;
+        }
+        
         if (!currentResults || !currentResults[modelKey]) {
             highlightViewer.textContent = context;
             return;
@@ -302,10 +394,59 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             
             // Rerender highlight
-            const context = contextInput.value;
-            renderHighlight(context, activeTabModel);
+            const contextToRender = currentResults[activeTabModel] && currentResults[activeTabModel].selected_context 
+                ? currentResults[activeTabModel].selected_context 
+                : currentContext;
+            renderHighlight(contextToRender, activeTabModel);
+            
+            // Rerender retrieved contexts list to update active selection badge
+            if (currentMode === 'pipeline') {
+                renderRetrievedContextsList(currentRetrievedContexts, activeTabModel);
+            }
         });
     });
+
+    // Render list of top-3 retrieved contexts
+    function renderRetrievedContextsList(contexts, activeModel) {
+        retrievedContextsList.innerHTML = '';
+        if (!contexts || contexts.length === 0) return;
+        
+        const selectedContext = currentResults[activeModel] && currentResults[activeModel].selected_context
+            ? currentResults[activeModel].selected_context
+            : null;
+            
+        contexts.forEach((ctx, index) => {
+            const div = document.createElement('div');
+            div.className = 'retrieved-item';
+            
+            const isActive = (selectedContext === ctx);
+            if (isActive) {
+                div.classList.add('active-selection');
+            }
+            
+            // Model label mapping for display badge
+            const modelLabelMap = {
+                'bm25': 'B1: BM25 Sentence',
+                'pretrained': 'B2: Pretrained XLM-R',
+                'finetuned': 'M1: Fine-tuned XLM-R'
+            };
+            
+            const badgeHtml = isActive 
+                ? `<span class="retrieved-badge-selected"><i class="fa-solid fa-circle-check"></i> Đang chọn bởi ${modelLabelMap[activeModel] || activeModel}</span>`
+                : '';
+                
+            div.innerHTML = `
+                <div class="retrieved-item-header">
+                    <span>Đoạn #${index + 1} (BM25 Rank ${index + 1})</span>
+                    ${badgeHtml}
+                </div>
+                <div class="retrieved-item-body">
+                    ${escapeHtml(ctx)}
+                </div>
+            `;
+            retrievedContextsList.appendChild(div);
+        });
+    }
 
     // Clear form
     btnClear.addEventListener('click', () => {
@@ -318,5 +459,12 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.style.display = 'flex';
         resultsContent.style.display = 'none';
         currentResults = null;
+        currentContext = '';
+        currentRetrievedContexts = [];
+        retrievedContextsSection.style.display = 'none';
+        retrievedContextsList.innerHTML = '';
+        
+        const existing = highlightViewer.parentNode.querySelector('.retrieval-badge');
+        if (existing) existing.remove();
     });
 });

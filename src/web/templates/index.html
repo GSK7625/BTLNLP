@@ -36,6 +36,16 @@
             <section class="panel input-panel">
                 <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Cấu hình & Dữ liệu</h2>
                 
+                <!-- Mode Selector -->
+                <div class="mode-selector">
+                    <button type="button" class="mode-btn active" id="mode-reader-only">
+                        <i class="fa-solid fa-book-open"></i> Đọc hiểu (Reader)
+                    </button>
+                    <button type="button" class="mode-btn" id="mode-retriever-reader">
+                        <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm (Retriever-Reader)
+                    </button>
+                </div>
+
                 <!-- Examples Dropdown -->
                 <div class="form-group">
                     <label for="example-select">Chọn mẫu ví dụ có sẵn</label>
@@ -49,9 +59,15 @@
                 </div>
 
                 <!-- Custom Inputs -->
-                <div class="form-group">
+                <div class="form-group" id="context-group">
                     <label for="context-input">Đoạn văn ngữ cảnh (Context)</label>
                     <textarea id="context-input" placeholder="Nhập hoặc dán đoạn văn ngữ cảnh tiếng Việt vào đây..." rows="8" required></textarea>
+                </div>
+
+                <!-- Notice for Retriever-Reader mode -->
+                <div id="retriever-notice" style="display: none;" class="notice-box">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Hệ thống sẽ tự động dùng BM25 Retriever tìm kiếm đoạn văn phù hợp nhất từ kho tài liệu mẫu (~500 đoạn văn) trước khi dùng Reader để trích xuất đáp án.</span>
                 </div>
 
                 <div class="form-group">
@@ -90,14 +106,6 @@
                             <span class="label-text">
                                 <strong>M1: XLM-RoBERTa Fine-tuned</strong>
                                 <span class="desc">Huấn luyện trên ViSpanExtractQA</span>
-                            </span>
-                        </label>
-                        <label class="checkbox-container">
-                            <input type="checkbox" id="model-qwen" value="qwen" checked>
-                            <span class="checkmark"></span>
-                            <span class="label-text">
-                                <strong>MR: Qwen2.5 Generative</strong>
-                                <span class="desc">LLM trích xuất (0.5B-Instruct)</span>
                             </span>
                         </label>
                     </div>
@@ -223,36 +231,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Qwen Card -->
-                        <div class="result-card" id="card-qwen">
-                            <div class="card-header">
-                                <span class="model-badge badge-mr">MR</span>
-                                <h4>Qwen2.5 Generative LLM</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="metric-row">
-                                    <span class="metric-label">Câu trả lời:</span>
-                                    <div class="predicted-answer-box" id="ans-qwen">-</div>
-                                </div>
-                                <div class="metrics-grid">
-                                    <div class="metric-item">
-                                        <span class="num" id="lat-qwen">0ms</span>
-                                        <span class="lbl">Trễ (Latency)</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="num" id="conf-qwen">-</span>
-                                        <span class="lbl">Độ tin cậy</span>
-                                    </div>
-                                </div>
-                                <div class="gold-metrics" id="gold-metrics-qwen">
-                                    <div class="metric-badge-box">
-                                        <span class="metric-badge" id="em-qwen">EM: -</span>
-                                        <span class="metric-badge" id="f1-qwen">F1: -</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Highlighted Text Section -->
@@ -267,9 +245,6 @@
                             <button class="tab-btn" data-model="finetuned">
                                 <span class="tab-dot dot-m1"></span> M1: Fine-tuned XLM-R
                             </button>
-                            <button class="tab-btn" data-model="qwen">
-                                <span class="tab-dot dot-mr"></span> MR: Qwen2.5 Generative
-                            </button>
                         </div>
                         <div class="visualizer-content">
                             <div class="visualizer-legend">
@@ -278,6 +253,16 @@
                             <div class="highlight-container" id="highlight-viewer">
                                 <!-- Rich HTML highlighting inserted here -->
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Top-K Retrieved Contexts List -->
+                    <div id="retrieved-contexts-section" style="display: none; margin-top: 16px;">
+                        <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--accent-color); display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-list-ol"></i> Danh sách Top-3 đoạn văn truy hồi bởi BM25:
+                        </h4>
+                        <div id="retrieved-contexts-list" style="display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Items injected dynamically -->
                         </div>
                     </div>
 

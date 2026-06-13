@@ -186,8 +186,8 @@ def evaluate(data_path: str, model_name: str, batch_size: int, num_samples: int 
         'token_f1': round(avg_f1, 4),
         'error_analysis': error_cases,
     }
-
-    out_path = data_path.replace('.json', f'_pretrained_{model_tag}_results.json')
+    suffix = f"_pretrained_{model_tag}_{num_samples}samples_results.json" if num_samples else f"_pretrained_{model_tag}_results.json"
+    out_path = data_path.replace('.json', suffix)
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     print(f"\n  Kết quả đã lưu: {out_path}")

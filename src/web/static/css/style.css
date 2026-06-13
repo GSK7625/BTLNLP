@@ -15,7 +15,6 @@
     --color-b1: #f59e0b; /* Amber */
     --color-b2: #3b82f6; /* Blue */
     --color-m1: #10b981; /* Emerald */
-    --color-mr: #8b5cf6; /* Violet */
     
     --radius-sm: 6px;
     --radius-md: 12px;
@@ -171,6 +170,64 @@ body {
     gap: 10px;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 12px;
+}
+
+/* Mode Selector Styles */
+.mode-selector {
+    display: flex;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    margin-bottom: 20px;
+    gap: 4px;
+}
+
+.mode-btn {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition-fast);
+}
+
+.mode-btn:hover {
+    color: var(--text-primary);
+}
+
+.mode-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+/* Notice Box Styles */
+.notice-box {
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 18px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #22d3ee;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.notice-box i {
+    font-size: 16px;
+    margin-top: 2px;
 }
 
 /* Forms */
@@ -484,7 +541,6 @@ textarea {
 .badge-b1 { background-color: var(--color-b1); }
 .badge-b2 { background-color: var(--color-b2); }
 .badge-m1 { background-color: var(--color-m1); }
-.badge-mr { background-color: var(--color-mr); }
 
 .predicted-answer-box {
     background: rgba(0,0,0,0.2);
@@ -503,7 +559,6 @@ textarea {
 #card-bm25 .predicted-answer-box { border-left-color: var(--color-b1); }
 #card-pretrained .predicted-answer-box { border-left-color: var(--color-b2); }
 #card-finetuned .predicted-answer-box { border-left-color: var(--color-m1); }
-#card-qwen .predicted-answer-box { border-left-color: var(--color-mr); }
 
 .metric-label {
     font-size: 11px;
@@ -621,7 +676,6 @@ textarea {
 .tab-btn.active[data-model="bm25"] { border-bottom-color: var(--color-b1); }
 .tab-btn.active[data-model="pretrained"] { border-bottom-color: var(--color-b2); }
 .tab-btn.active[data-model="finetuned"] { border-bottom-color: var(--color-m1); }
-.tab-btn.active[data-model="qwen"] { border-bottom-color: var(--color-mr); }
 
 .tab-dot {
     width: 8px;
@@ -632,7 +686,6 @@ textarea {
 .dot-b1 { background-color: var(--color-b1); }
 .dot-b2 { background-color: var(--color-b2); }
 .dot-m1 { background-color: var(--color-m1); }
-.dot-mr { background-color: var(--color-mr); }
 
 .visualizer-content {
     padding: 20px;
@@ -696,12 +749,6 @@ textarea {
     color: #a7f3d0;
 }
 
-.hl-qwen {
-    background-color: rgba(139, 92, 246, 0.2);
-    border: 1px dashed var(--color-mr);
-    color: #ddd6fe;
-}
-
 /* Footer */
 .app-footer {
     text-align: center;
@@ -711,3 +758,46 @@ textarea {
     border-top: 1px solid var(--border-color);
     margin-top: 24px;
 }
+
+/* Retrieved Contexts List Styles */
+.retrieved-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 13.5px;
+    transition: var(--transition-fast);
+    line-height: 1.6;
+}
+
+.retrieved-item.active-selection {
+    border-color: var(--accent-color);
+    background: rgba(6, 182, 212, 0.04);
+}
+
+.retrieved-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.retrieved-item.active-selection .retrieved-item-header {
+    color: var(--accent-color);
+}
+
+.retrieved-badge-selected {
+    background: var(--accent-color);
+    color: #0b0f19;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: none;
+}
+

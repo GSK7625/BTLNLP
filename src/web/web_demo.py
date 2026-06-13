@@ -5,7 +5,12 @@ import time
 import json
 import re
 import torch
+import numpy as np
 from flask import Flask, request, jsonify, send_from_directory, render_template
+
+GLOBAL_CORPUS_RAW = []
+GLOBAL_CORPUS_TOKENIZED = []
+GLOBAL_BM25 = None
 
 # Setup paths so we can import modules correctly
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -20,77 +25,6 @@ app = Flask(__name__)
 # Global cache for heavy models
 MODEL_CACHE = {}
 
-class QwenReader:
-    def __init__(self, model_path: str):
-        self.device = 0 if torch.cuda.is_available() else -1
-        device_name = "GPU (CUDA)" if self.device == 0 else "CPU"
-        print(f"  [QwenReader] Loading model: {model_path} | Device: {device_name}")
-        from transformers import pipeline
-        self.generator = pipeline(
-            "text-generation",
-            model=model_path,
-            device=self.device,
-            torch_dtype=torch.float32
-        )
-        print("  [QwenReader] Model loaded successfully.")
-
-    def predict(self, question: str, context: str) -> dict:
-        t0 = time.time()
-        try:
-            messages = [
-                {
-                    "role": "system",
-                    "content": "Bạn là một trợ lý AI hữu ích. Nhiệm vụ của bạn là trích xuất chính xác câu trả lời cho câu hỏi từ đoạn văn ngữ cảnh được cung cấp. Chỉ trả về duy nhất cụm từ câu trả lời chính xác lấy từ ngữ cảnh, không viết lại câu, không thêm lời dẫn giải."
-                },
-                {
-                    "role": "user",
-                    "content": f"Ngữ cảnh: {context}\nCâu hỏi: {question}\nCâu trả lời ngắn:"
-                }
-            ]
-            prompt = self.generator.tokenizer.apply_chat_template(
-                messages, 
-                tokenize=False, 
-                add_generation_prompt=True
-            )
-            outputs = self.generator(
-                prompt,
-                max_new_tokens=50,
-                temperature=0.1,
-                do_sample=False,
-                return_full_text=False
-            )
-            pred_answer = outputs[0]['generated_text'].strip()
-            # Clean up potential LLM response wrapping
-            pred_answer = pred_answer.replace("Câu trả lời:", "").strip()
-            pred_answer = pred_answer.replace("câu trả lời:", "").strip()
-            
-            # Align char index in context
-            char_start = context.find(pred_answer)
-            if char_start != -1:
-                char_end = char_start + len(pred_answer)
-            else:
-                char_start = 0
-                char_end = 0
-                
-            latency = (time.time() - t0) * 1000
-            return {
-                'answer': pred_answer,
-                'confidence': 1.0,
-                'char_start': char_start,
-                'char_end': char_end,
-                'latency_ms': round(latency, 1)
-            }
-        except Exception as e:
-            latency = (time.time() - t0) * 1000
-            return {
-                'answer': '',
-                'confidence': 0.0,
-                'char_start': 0,
-                'char_end': 0,
-                'latency_ms': round(latency, 1),
-                'error': str(e)
-            }
-
 def get_model_reader(model_key: str):
     """Lazy load the reader models to save memory and startup time."""
     if model_key not in MODEL_CACHE:
@@ -104,10 +38,6 @@ def get_model_reader(model_key: str):
             if not os.path.exists(model_path) or not os.listdir(model_path):
                 raise ValueError("Fine-tuned model folder not found or empty. Please run training first.")
             MODEL_CACHE[model_key] = ExtractiveReader(model_path)
-        elif model_key == 'qwen':
-            # Generative LLM reader (Qwen2.5-0.5B-Instruct)
-            model_path = 'Qwen/Qwen2.5-0.5B-Instruct'
-            MODEL_CACHE[model_key] = QwenReader(model_path)
     return MODEL_CACHE[model_key]
 
 
@@ -258,7 +188,7 @@ def predict():
         try:
             if model_key == 'bm25':
                 res = run_bm25_selector(question, context)
-            elif model_key in ('pretrained', 'finetuned', 'qwen'):
+            elif model_key in ('pretrained', 'finetuned'):
                 reader = get_model_reader(model_key)
                 res = reader.predict(question, context)
             else:
@@ -292,7 +222,125 @@ def predict():
     return jsonify({'results': results})
 
 
+def init_global_corpus():
+    global GLOBAL_CORPUS_RAW, GLOBAL_CORPUS_TOKENIZED, GLOBAL_BM25
+    test_path = 'data/processed/test_clean.json'
+    if os.path.exists(test_path):
+        try:
+            with open(test_path, encoding='utf-8') as f:
+                test_data = json.load(f)
+            unique_contexts = {}
+            for item in test_data:
+                ctx_raw = item.get('context_raw', '')
+                ctx_bm25 = item.get('context_bm25', '')
+                if ctx_raw and ctx_bm25 and ctx_raw not in unique_contexts:
+                    unique_contexts[ctx_raw] = ctx_bm25
+            
+            GLOBAL_CORPUS_RAW = list(unique_contexts.keys())
+            GLOBAL_CORPUS_TOKENIZED = [unique_contexts[c].split() for c in GLOBAL_CORPUS_RAW]
+            
+            from rank_bm25 import BM25Okapi
+            GLOBAL_BM25 = BM25Okapi(GLOBAL_CORPUS_TOKENIZED)
+            print(f"  [Corpus QA] Loaded global corpus with {len(GLOBAL_CORPUS_RAW)} unique contexts.")
+        except Exception as e:
+            print(f"  [Corpus QA] Failed to load global corpus: {e}")
+    else:
+        print(f"  [Corpus QA] Test clean file not found at: {test_path}")
+
+
+@app.route('/api/predict_pipeline', methods=['POST'])
+def predict_pipeline():
+    data = request.json or {}
+    question = data.get('question', '').strip()
+    selected_models = data.get('models', [])
+    gold = data.get('gold', '').strip()
+    
+    if not question:
+        return jsonify({'error': 'Câu hỏi không được để trống.'}), 400
+        
+    if not GLOBAL_BM25:
+        return jsonify({'error': 'Kho dữ liệu chưa được tải hoặc trống.'}), 500
+        
+    t0 = time.time()
+    
+    # Tiền xử lý câu hỏi cho BM25
+    from src.data.preprocess import preprocess_for_retriever
+    q_bm25 = preprocess_for_retriever(question)
+    q_tokens = q_bm25.split()
+    
+    # Truy hồi top-3 contexts
+    scores = GLOBAL_BM25.get_scores(q_tokens)
+    top_3_indices = np.argsort(scores)[-3:][::-1]
+    retrieved_contexts = [GLOBAL_CORPUS_RAW[idx] for idx in top_3_indices]
+    
+    retrieval_latency = (time.time() - t0) * 1000
+    
+    results = {}
+    for model_key in selected_models:
+        try:
+            if model_key == 'bm25':
+                # Với BM25, chọn câu tốt nhất trong đoạn văn Top-1
+                best_context = retrieved_contexts[0]
+                res = run_bm25_selector(question, best_context)
+                res['selected_context'] = best_context
+            elif model_key in ('pretrained', 'finetuned'):
+                reader = get_model_reader(model_key)
+                
+                # Chạy Reader trên cả 3 đoạn văn, tìm kết quả có score cao nhất
+                best_score = -1.0
+                best_res = None
+                best_context = retrieved_contexts[0]
+                
+                for ctx in retrieved_contexts:
+                    pred = reader.predict(question, ctx)
+                    score = pred.get('confidence', 0.0)
+                    if score > best_score:
+                        best_score = score
+                        best_res = pred
+                        best_context = ctx
+                        
+                res = best_res
+                res['selected_context'] = best_context
+            else:
+                continue
+                
+            # Đánh giá nếu có đáp án đúng đi kèm
+            if gold:
+                pred_norm = normalize_answer(res['answer'])
+                gold_norm = normalize_answer(gold)
+                res['em'] = int(pred_norm == gold_norm)
+                res['f1'] = round(compute_f1(gold, res['answer']), 4)
+            else:
+                res['em'] = None
+                res['f1'] = None
+                
+            results[model_key] = res
+            
+        except Exception as e:
+            results[model_key] = {
+                'error': str(e),
+                'answer': 'Lỗi chạy model',
+                'confidence': 0.0,
+                'latency_ms': 0.0,
+                'char_start': 0,
+                'char_end': 0,
+                'em': 0,
+                'f1': 0.0,
+                'selected_context': retrieved_contexts[0]
+            }
+            print(f"[ERROR] Model {model_key} failed in pipeline: {e}")
+            
+    return jsonify({
+        'retrieved_context': retrieved_contexts[0], # Default Top-1 context
+        'retrieved_contexts': retrieved_contexts,   # List of all top-3 contexts
+        'retrieval_latency_ms': round(retrieval_latency, 1),
+        'results': results
+    })
+
+
 if __name__ == '__main__':
+    # Initialize global corpus
+    init_global_corpus()
     # Add template folders inside src/web
     app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
     app.static_folder = os.path.join(os.path.dirname(__file__), 'static')

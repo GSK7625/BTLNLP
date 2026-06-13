@@ -153,7 +153,8 @@ def evaluate(data_path: str, num_samples: int = None):
         'error_analysis': error_cases,
     }
 
-    out_path = data_path.replace('.json', '_bm25only_results.json')
+    suffix = f"_bm25only_{num_samples}samples_results.json" if num_samples else "_bm25only_results.json"
+    out_path = data_path.replace('.json', suffix)
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     print(f"\n  Kết quả đã lưu: {out_path}")
