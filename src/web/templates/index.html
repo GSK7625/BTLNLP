@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vietnamese Extractive QA Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-brain logo-icon"></i>
+                <div class="logo-text">
+                    <h1>ViExtractiveQA</h1>
+                    <span class="subtitle">Vietnamese Extractive Question Answering Dashboard</span>
+                </div>
+            </div>
+            <div class="header-badge">
+                <span class="status-dot pulsing"></span>
+                <span>System Online</span>
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <main class="app-grid">
+            <!-- Sidebar: Inputs -->
+            <section class="panel input-panel">
+                <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Cấu hình & Dữ liệu</h2>
+                
+                <!-- Examples Dropdown -->
+                <div class="form-group">
+                    <label for="example-select">Chọn mẫu ví dụ có sẵn</label>
+                    <div class="select-wrapper">
+                        <select id="example-select">
+                            <option value="">-- Nhập văn bản tự do --</option>
+                            <!-- Examples loaded dynamically -->
+                        </select>
+                        <i class="fa-solid fa-chevron-down select-arrow"></i>
+                    </div>
+                </div>
+
+                <!-- Custom Inputs -->
+                <div class="form-group">
+                    <label for="context-input">Đoạn văn ngữ cảnh (Context)</label>
+                    <textarea id="context-input" placeholder="Nhập hoặc dán đoạn văn ngữ cảnh tiếng Việt vào đây..." rows="8" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="question-input">Câu hỏi (Question)</label>
+                    <input type="text" id="question-input" placeholder="Ai là chủ tịch tập đoàn Alibaba?" required>
+                </div>
+
+                <div class="form-group" id="gold-answer-group" style="display:none;">
+                    <label for="gold-input"><i class="fa-solid fa-circle-check text-gold"></i> Đáp án đúng (Gold Standard)</label>
+                    <input type="text" id="gold-input" readonly class="readonly-input">
+                </div>
+
+                <!-- Method selection -->
+                <div class="form-group">
+                    <label>Phương pháp so sánh (Models to run)</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="model-bm25" value="bm25" checked>
+                            <span class="checkmark"></span>
+                            <span class="label-text">
+                                <strong>B1: BM25 Sentence</strong>
+                                <span class="desc">Rule-based câu trùng lặp</span>
+                            </span>
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="model-pretrained" value="pretrained" checked>
+                            <span class="checkmark"></span>
+                            <span class="label-text">
+                                <strong>B2: XLM-RoBERTa Pretrained</strong>
+                                <span class="desc">Chưa fine-tune (SQuAD2)</span>
+                            </span>
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="model-finetuned" value="finetuned" checked>
+                            <span class="checkmark"></span>
+                            <span class="label-text">
+                                <strong>M1: XLM-RoBERTa Fine-tuned</strong>
+                                <span class="desc">Huấn luyện trên ViSpanExtractQA</span>
+                            </span>
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="model-qwen" value="qwen" checked>
+                            <span class="checkmark"></span>
+                            <span class="label-text">
+                                <strong>MR: Qwen2.5 Generative</strong>
+                                <span class="desc">LLM trích xuất (0.5B-Instruct)</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button id="btn-submit" class="btn btn-primary">
+                        <i class="fa-solid fa-play"></i> Trực quan hóa câu trả lời
+                    </button>
+                    <button id="btn-clear" class="btn btn-secondary">
+                        <i class="fa-solid fa-eraser"></i> Xóa
+                    </button>
+                </div>
+            </section>
+
+            <!-- Main Panel: Visualizations -->
+            <section class="panel results-panel">
+                <div class="results-header">
+                    <h2 class="panel-title"><i class="fa-solid fa-square-poll-vertical"></i> Kết quả phân tích & Trực quan</h2>
+                    <div id="results-loader" class="loader-wrapper" style="display:none;">
+                        <span class="loader-spinner"></span> Running inference...
+                    </div>
+                </div>
+
+                <!-- Empty state placeholder -->
+                <div id="empty-state" class="empty-state">
+                    <i class="fa-regular fa-comments empty-icon"></i>
+                    <h3>Chưa có dữ liệu</h3>
+                    <p>Chọn một ví dụ có sẵn hoặc tự nhập câu hỏi & ngữ cảnh rồi bấm nút <strong>Trực quan hóa</strong> để xem kết quả.</p>
+                </div>
+
+                <!-- Results display content -->
+                <div id="results-content" style="display:none;">
+                    
+                    <!-- Side-by-side comparison cards -->
+                    <div class="comparison-cards">
+                        <!-- BM25 Card -->
+                        <div class="result-card" id="card-bm25">
+                            <div class="card-header">
+                                <span class="model-badge badge-b1">B1</span>
+                                <h4>BM25 Sentence Overlap</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="metric-row">
+                                    <span class="metric-label">Câu trả lời:</span>
+                                    <div class="predicted-answer-box" id="ans-bm25">-</div>
+                                </div>
+                                <div class="metrics-grid">
+                                    <div class="metric-item">
+                                        <span class="num" id="lat-bm25">0ms</span>
+                                        <span class="lbl">Trễ (Latency)</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="num" id="conf-bm25">-</span>
+                                        <span class="lbl">Độ tin cậy</span>
+                                    </div>
+                                </div>
+                                <div class="gold-metrics" id="gold-metrics-bm25">
+                                    <div class="metric-badge-box">
+                                        <span class="metric-badge" id="em-bm25">EM: -</span>
+                                        <span class="metric-badge" id="f1-bm25">F1: -</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pretrained Card -->
+                        <div class="result-card" id="card-pretrained">
+                            <div class="card-header">
+                                <span class="model-badge badge-b2">B2</span>
+                                <h4>XLM-R Pretrained</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="metric-row">
+                                    <span class="metric-label">Câu trả lời:</span>
+                                    <div class="predicted-answer-box" id="ans-pretrained">-</div>
+                                </div>
+                                <div class="metrics-grid">
+                                    <div class="metric-item">
+                                        <span class="num" id="lat-pretrained">0ms</span>
+                                        <span class="lbl">Trễ (Latency)</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="num" id="conf-pretrained">-</span>
+                                        <span class="lbl">Độ tin cậy</span>
+                                    </div>
+                                </div>
+                                <div class="gold-metrics" id="gold-metrics-pretrained">
+                                    <div class="metric-badge-box">
+                                        <span class="metric-badge" id="em-pretrained">EM: -</span>
+                                        <span class="metric-badge" id="f1-pretrained">F1: -</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fine-tuned Card -->
+                        <div class="result-card" id="card-finetuned">
+                            <div class="card-header">
+                                <span class="model-badge badge-m1">M1</span>
+                                <h4>XLM-R Fine-tuned</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="metric-row">
+                                    <span class="metric-label">Câu trả lời:</span>
+                                    <div class="predicted-answer-box" id="ans-finetuned">-</div>
+                                </div>
+                                <div class="metrics-grid">
+                                    <div class="metric-item">
+                                        <span class="num" id="lat-finetuned">0ms</span>
+                                        <span class="lbl">Trễ (Latency)</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="num" id="conf-finetuned">-</span>
+                                        <span class="lbl">Độ tin cậy</span>
+                                    </div>
+                                </div>
+                                <div class="gold-metrics" id="gold-metrics-finetuned">
+                                    <div class="metric-badge-box">
+                                        <span class="metric-badge" id="em-finetuned">EM: -</span>
+                                        <span class="metric-badge" id="f1-finetuned">F1: -</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Qwen Card -->
+                        <div class="result-card" id="card-qwen">
+                            <div class="card-header">
+                                <span class="model-badge badge-mr">MR</span>
+                                <h4>Qwen2.5 Generative LLM</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="metric-row">
+                                    <span class="metric-label">Câu trả lời:</span>
+                                    <div class="predicted-answer-box" id="ans-qwen">-</div>
+                                </div>
+                                <div class="metrics-grid">
+                                    <div class="metric-item">
+                                        <span class="num" id="lat-qwen">0ms</span>
+                                        <span class="lbl">Trễ (Latency)</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="num" id="conf-qwen">-</span>
+                                        <span class="lbl">Độ tin cậy</span>
+                                    </div>
+                                </div>
+                                <div class="gold-metrics" id="gold-metrics-qwen">
+                                    <div class="metric-badge-box">
+                                        <span class="metric-badge" id="em-qwen">EM: -</span>
+                                        <span class="metric-badge" id="f1-qwen">F1: -</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Highlighted Text Section -->
+                    <div class="visualizer-section">
+                        <div class="visualizer-tabs">
+                            <button class="tab-btn active" data-model="bm25">
+                                <span class="tab-dot dot-b1"></span> B1: BM25 Sentence
+                            </button>
+                            <button class="tab-btn" data-model="pretrained">
+                                <span class="tab-dot dot-b2"></span> B2: Pretrained XLM-R
+                            </button>
+                            <button class="tab-btn" data-model="finetuned">
+                                <span class="tab-dot dot-m1"></span> M1: Fine-tuned XLM-R
+                            </button>
+                            <button class="tab-btn" data-model="qwen">
+                                <span class="tab-dot dot-mr"></span> MR: Qwen2.5 Generative
+                            </button>
+                        </div>
+                        <div class="visualizer-content">
+                            <div class="visualizer-legend">
+                                <span><span class="legend-color highlight-legend"></span> Câu trả lời được chọn (Predicted span)</span>
+                            </div>
+                            <div class="highlight-container" id="highlight-viewer">
+                                <!-- Rich HTML highlighting inserted here -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Bài tập lớn môn Xử lý Ngôn ngữ Tự nhiên (NLP) | Nhóm BTL</p>
+        </footer>
+    </div>
+
+    <!-- Custom App JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

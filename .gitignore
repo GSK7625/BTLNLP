@@ -1,0 +1,28 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pyright / IDE configurations
+.vscode/
+.idea/
+pyrightconfig.json
+
+# Local configurations
+.env
+
+# Large models and data
+models/xlmroberta_finetuned/*
+!models/xlmroberta_finetuned/.gitkeep
+data/processed/*.json
+data/processed/*.csv
+error_analysis.csv
+
+# System files
+.DS_Store
+Thumbs.db

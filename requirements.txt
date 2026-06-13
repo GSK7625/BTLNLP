@@ -1,0 +1,12 @@
+transformers>=4.40.0
+datasets
+underthesea
+rank_bm25
+tqdm
+numpy
+pandas
+rich
+protobuf
+sentencepiece
+pdfplumber
+python-dotenv
