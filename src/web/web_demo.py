@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import io
 import time
 import json
 import re
 import torch
 import numpy as np
 from flask import Flask, request, jsonify, send_from_directory, render_template
+
+if getattr(sys.stdout, 'encoding', '').lower() != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if getattr(sys.stderr, 'encoding', '').lower() != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 GLOBAL_CORPUS_RAW = []
 GLOBAL_CORPUS_TOKENIZED = []
@@ -18,9 +24,57 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 
-# Import metrics and components from src or demo
+# Import metrics and components from src
 from src.utils.metrics import normalize_answer, compute_f1, compute_exact
-from demo import ExtractiveReader
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
+
+class ExtractiveReader:
+    def __init__(self, model_name_or_path: str):
+        self.device = 0 if torch.cuda.is_available() else -1
+        device_name = "GPU (CUDA)" if self.device == 0 else "CPU"
+        print(f"  [Reader] Loading model: {model_name_or_path} | Device: {device_name}")
+        
+        try:
+            self.pipeline = pipeline(
+                "question-answering",
+                model=model_name_or_path,
+                tokenizer=model_name_or_path,
+                device=self.device
+            )
+        except Exception as e:
+            print(f"  [WARN] pipeline initialization failed: {e}. Trying direct AutoModel loading...")
+            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+            model = AutoModelForQuestionAnswering.from_pretrained(model_name_or_path)
+            self.pipeline = pipeline(
+                "question-answering",
+                model=model,
+                tokenizer=tokenizer,
+                device=self.device
+            )
+        print("  [Reader] Model loaded successfully.")
+
+    def predict(self, question: str, context: str) -> dict:
+        t0 = time.time()
+        try:
+            res = self.pipeline(question=question, context=context, max_answer_len=50)
+            latency = (time.time() - t0) * 1000
+            return {
+                'answer': res.get('answer', '').strip(),
+                'confidence': float(res.get('score', 0.0)),
+                'char_start': int(res.get('start', 0)),
+                'char_end': int(res.get('end', 0)),
+                'latency_ms': round(latency, 1)
+            }
+        except Exception as e:
+            latency = (time.time() - t0) * 1000
+            return {
+                'answer': '',
+                'confidence': 0.0,
+                'char_start': 0,
+                'char_end': 0,
+                'latency_ms': round(latency, 1),
+                'error': str(e)
+            }
 
 app = Flask(__name__)
 
@@ -528,8 +582,8 @@ if __name__ == '__main__':
     app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
     
     print("==========================================================")
-    print(" Khởi động Flask Server cho demo Hỏi Đáp Tiếng Việt")
-    print(" Truy cập tại: http://127.0.0.1:5000")
+    print(" Khoi dong Flask Server cho demo Hoi Dap Tieng Viet")
+    print(" Truyc ap tai: http://127.0.0.1:5000")
     print("==========================================================")
     
     app.run(host='127.0.0.1', port=5000, debug=True)

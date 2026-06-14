@@ -76,7 +76,6 @@ BTLNLP/
 │       └── web_demo.py         # Backend server Flask
 │
 ├── requirements.txt            # Danh sách các thư viện phụ thuộc
-├── demo.py                     # CLI Demo tương tác kiểm thử nhanh
 └── README.md                   # Hướng dẫn dự án (Tệp này)
 ```
 
