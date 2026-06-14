@@ -95,8 +95,8 @@
                 <div class="form-group">
                     <label>Phương pháp so sánh (Models to run)</label>
                     <div class="checkbox-group">
-                        <label class="checkbox-container">
-                            <input type="checkbox" id="model-bm25" value="bm25" checked>
+                        <label class="checkbox-container" style="display: none;">
+                            <input type="checkbox" id="model-bm25" value="bm25">
                             <span class="checkmark"></span>
                             <span class="label-text">
                                 <strong>B1: BM25 Sentence</strong>
@@ -154,7 +154,7 @@
                     <!-- Side-by-side comparison cards -->
                     <div class="comparison-cards">
                         <!-- BM25 Card -->
-                        <div class="result-card" id="card-bm25">
+                        <div class="result-card" id="card-bm25" style="display: none;">
                             <div class="card-header">
                                 <span class="model-badge badge-b1">B1</span>
                                 <h4>BM25 Sentence Overlap</h4>
@@ -217,13 +217,13 @@
                     <!-- Highlighted Text Section -->
                     <div class="visualizer-section">
                         <div class="visualizer-tabs">
-                            <button class="tab-btn active" data-model="bm25">
+                            <button class="tab-btn" data-model="bm25" style="display: none;">
                                 <span class="tab-dot dot-b1"></span> B1: BM25 Sentence
                             </button>
                             <button class="tab-btn" data-model="pretrained">
                                 <span class="tab-dot dot-b2"></span> B2: Pretrained XLM-R
                             </button>
-                            <button class="tab-btn" data-model="finetuned">
+                            <button class="tab-btn active" data-model="finetuned">
                                 <span class="tab-dot dot-m1"></span> M1: Fine-tuned XLM-R
                             </button>
                         </div>

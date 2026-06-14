@@ -93,7 +93,6 @@ Kiến trúc hệ thống hoàn chỉnh kết hợp giữa bộ lọc từ khóa
    * Đối với Retriever: Biểu diễn dạng túi từ (Bag-of-Words) trên tập token đã được tách từ tiếng Việt.
    * Đối với Reader: Token hóa bằng Subword Tokenizer của XLM-RoBERTa, sử dụng cơ chế `offset_mapping` để ánh xạ chính xác vị trí ký tự của đáp án sang vị trí token trong mô hình.
 3. **Mô hình Baseline**:
-   * **B1: BM25-Only (Rule-based)**: Tìm đoạn văn chứa câu trả lời, trả về cả câu chứa nhiều từ khóa trùng nhất (làm mốc baseline tối thiểu).
    * **B2: XLM-RoBERTa Pretrained (SQuAD2)**: Dùng checkpoint lớn đã được train sẵn trên tập SQuAD2 tiếng Anh (`deepset/xlm-roberta-base-squad2`) và chạy thẳng trên tiếng Việt để xem khả năng zero-shot transfer.
 4. **Phương pháp chính (M1)**: Fine-tune mô hình `xlm-roberta-base` trực tiếp trên tập dữ liệu tiếng Việt sạch **ViSpanExtractQA** sau bước tiền xử lý lọc lỗi.
    * Cấu hình huấn luyện: 2 epochs, batch size = 8, learning rate = 2e-5, max sequence length = 256, và stride = 64 (cắt trượt để không bỏ lỡ thông tin khi văn bản quá dài).
@@ -108,7 +107,6 @@ Bảng dưới đây trình bày kết quả đo lường độ chính xác (Exa
 
 | Mô hình | Exact Match (EM) | Token F1 | Thời gian Inference (CPU/mẫu) | Đặc điểm / Vai trò |
 | :--- | :---: | :---: | :---: | :--- |
-| **B1: BM25-Only (Rule-based)** | 0.80 | 24.31 | Khớp từ khóa | Trả về cả câu chứa nhiều từ trùng nhất (chưa trích xuất span ngắn). |
 | **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất (QA) | Checkpoint gốc chưa thích nghi sâu với ngữ pháp tiếng Việt. |
 | **M1: XLM-RoBERTa Fine-tuned** | **60.60** | **81.05** | **Trích xuất QA** | **Huấn luyện trực tiếp trên tập tiếng Việt sạch (chỉ số độc lập).** |
 | **BM25 + XLM-R Pretrained (Pipeline)** | 38.20 | 62.17 | Kênh kết hợp | BM25 Retriever lọc Top-3 + Pretrained Reader (Retriever Acc: 93.40%). |
@@ -142,9 +140,7 @@ Nhóm ưu tiên chọn **Pipeline+M1** làm hệ thống đề xuất vì trong 
 Quá trình phân tích được thực hiện thông qua module `error_analysis.py`, tổng hợp các đánh giá định lượng và định tính để chỉ ra điểm nghẽn của hệ thống.
 
 ### 6.1. Phân phối định lượng các loại lỗi của mô hình M1
-Nhờ có khả năng phân lớp lỗi (Error Profiling) tự động, nhóm ghi nhận sự phân cực rõ rệt giữa mô hình Rule-based và Machine Learning:
-* Trong khi mô hình B1 (BM25-only) lỗi chủ yếu ở việc "Sai span hoàn toàn" do chỉ bám vào từ khóa bề mặt (Lexical overlap) mà không hiểu cú pháp.
-* Mô hình M1 mắc phải 4 nhóm lỗi chính, phần lớn lại xoay quanh vấn đề định vị biên độ:
+Nhờ có khả năng phân lớp lỗi (Error Profiling) tự động, mô hình M1 ghi nhận 4 nhóm lỗi chính, phần lớn xoay quanh vấn đề định vị biên độ:
   1. **Lỗi biên (Span dư thừa - Over-extraction)**: **45.0%** (Định vị đúng vùng nhưng trích xuất dư ký tự).
   2. **Sai span hoàn toàn (Wrong span)**: **41.7%** (Model chọn sai câu trong ngữ cảnh có nhiều thực thể tương tự).
   3. **Nhãn nhiễu (Label noise)**: **11.7%** (Lỗi do dữ liệu gốc chứa đáp án bị paraphrase hoặc sai lệch).

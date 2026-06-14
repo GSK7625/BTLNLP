@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // State variables
     let preloadedExamples = [];
     let currentResults = null;
-    let activeTabModel = 'bm25'; // Default active tab
+    let activeTabModel = 'finetuned'; // Default active tab
     let currentMode = 'reader'; // 'reader' or 'pipeline'
     let currentContext = '';
     let currentRetrievedContexts = [];

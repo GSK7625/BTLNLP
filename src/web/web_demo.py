@@ -362,12 +362,6 @@ def get_comparison():
     # Fallback to standard project metrics if file is not found
     fallback_results = [
         {
-            "name": "B1: BM25-Only (Rule-based)",
-            "em": 0.8,
-            "f1": 24.31,
-            "note": "Baseline tối thiểu — không dùng model"
-        },
-        {
             "name": "B2: XLM-RoBERTa (pretrained, no FT)",
             "em": 44.6,
             "f1": 70.39,

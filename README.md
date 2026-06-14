@@ -142,7 +142,7 @@ python src/data/preprocess.py
 python src/models/train.py \
     --mode train_eval \
     --max_train_samples -1 \
-    --num_epochs 2 \
+    --num_epochs 3 \
     --batch_size 16 \
     --learning_rate 2e-5 \
     --output_dir models/xlmroberta_finetuned
@@ -155,9 +155,6 @@ Hệ thống hỗ trợ chạy đánh giá với số lượng mẫu tùy chọn
 
 ##### Mốc 1: Chạy đánh giá 500 mẫu (Kiểm thử nhanh)
 ```bash
-# Đánh giá Baseline B1 (BM25-Only Reader)
-python src/models/baseline_bm25.py --num_samples 500
-
 # Đánh giá Baseline B2 (XLM-R Pretrained)
 python src/models/baseline_pretrained.py --model deepset/xlm-roberta-base-squad2 --num_samples 500
 
@@ -176,9 +173,6 @@ python src/models/visualize_results.py --num_samples 500 --out_dir results/figur
 
 ##### Mốc 2: Chạy đánh giá 5000 mẫu (Kiểm thử quy mô lớn)
 ```bash
-# Đánh giá Baseline B1 (BM25-Only Reader)
-python src/models/baseline_bm25.py --num_samples 5000
-
 # Đánh giá Baseline B2 (XLM-R Pretrained)
 python src/models/baseline_pretrained.py --model deepset/xlm-roberta-base-squad2 --num_samples 5000
 
@@ -225,7 +219,6 @@ Dưới đây là bảng so sánh hiệu năng của các phương pháp trên *
 
 | Mô hình / Phương pháp | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
 | :--- | :---: | :---: | :---: | :--- |
-| **B1: BM25-Only (Rule-based)** | 0.80 | 24.31 | Khớp từ khóa | Trả về cả câu chứa nhiều từ khóa trùng khớp nhất (chưa trích xuất). |
 | **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất (Deepset) | Mô hình cơ sở chưa qua huấn luyện thích nghi trên ViSpanExtractQA. |
 | **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **60.60** | **81.05** | **Trích xuất tối ưu** | **Mô hình đề xuất chính, tinh chỉnh trên dữ liệu tiếng Việt sạch.** |
 | **BM25 + XLM-R Pretrained (Pipeline)** | 38.20 | 62.17 | Retriever + Reader | Tích hợp Top-3 đoạn văn bản (Retriever Acc: 93.40%). |
