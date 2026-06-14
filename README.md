@@ -81,16 +81,33 @@ BTLNLP/
 
 ---
 
-## 4. Quy trình tiền xử lý dữ liệu
+## 4. Phân tích EDA dữ liệu
 
-Tập dữ liệu gốc gặp một số vấn đề về bảng mã ký tự tiếng Việt và sự lệch căn chỉnh (misalignment) giữa nhãn câu trả lời và ngữ cảnh. Quy trình xử lý tại [preprocess.py](file:///c:/Users/Kien/BTLNLP/src/data/preprocess.py) giải quyết triệt để thông qua các bước:
+Trước khi tiến hành tiền xử lý, dự án thực hiện **Phân tích Khám phá Dữ liệu (EDA)** qua script [eda.py](file:///c:/Users/Kien/BTLNLP/src/data/eda.py) nhằm hiểu rõ cấu trúc và chất lượng dữ liệu thô:
+
+- **Thống kê phân phối**: Kích thước từng split (train/validation/test), độ dài trung bình của context, câu hỏi và đáp án.
+- **Quét vấn đề chất lượng**: Phát hiện mẫu null, câu hỏi trùng lặp, và tổng số đáp án không tìm thấy trong ngữ cảnh.
+- **Phân tích chi tiết lỗi gán nhãn**: Phân loại nguyên nhân đáp án không khớp ngữ cảnh thành 4 nhóm:
+  1. Lệch chữ hoa/thường (Case Mismatch)
+  2. Khoảng trắng thừa (Whitespace Mismatch)
+  3. Lệch chuẩn hóa Unicode NFC vs NFD
+  4. Lỗi dịch máy / Paraphrase (không khắc phục được)
+- **Trực quan hóa mẫu lỗi**: Highlight cụ thể vị trí lỗi trong ngữ cảnh để xác nhận trực quan từng loại.
+
+Kết quả EDA là cơ sở trực tiếp xác định các bước xử lý cần thiết ở phần tiếp theo.
+
+---
+
+## 5. Quy trình tiền xử lý dữ liệu
+
+Dựa trên insight từ EDA, tập dữ liệu gốc được làm sạch qua [preprocess.py](file:///c:/Users/Kien/BTLNLP/src/data/preprocess.py) với các bước:
 1. **Chuẩn hóa Unicode (NFC)**: Đưa toàn bộ ký tự về dạng NFC để tránh lỗi không khớp chuỗi do sự khác biệt giữa ký tự tổ hợp và dựng sẵn (ví dụ: `hòa` vs `hoà`).
 2. **Khôi phục lệch Casing**: Sửa các lỗi viết hoa/viết thường giữa nhãn câu trả lời gốc và ngữ cảnh, khôi phục thành công khoảng **15%** số mẫu lỗi gán nhãn trong tập dữ liệu gốc.
 3. **Phân đoạn & Ánh xạ Token**: Sử dụng thư viện `underthesea` để tách từ tiếng Việt chuẩn cho mô hình từ khóa (BM25), đồng thời cấu hình `offset_mapping` của tokenizer để ánh xạ chính xác vị trí ký tự sang token ID tương ứng trong XLM-RoBERTa.
 
 ---
 
-## 5. Hướng dẫn cài đặt & Vận hành
+## 6. Hướng dẫn cài đặt & Vận hành
 
 ### Thiết lập môi trường ảo
 ```bash
@@ -107,16 +124,17 @@ pip install -r requirements.txt
 
 ### Quy trình chạy thực nghiệm tuần tự
 
-#### Bước 1: Tiền xử lý và làm sạch dữ liệu
+#### Bước 1: Phân tích EDA dữ liệu
+```bash
+python src/data/eda.py
+```
+*Phân tích phân phối, phát hiện lỗi gán nhãn và xác định chiến lược xử lý dữ liệu.*
+
+#### Bước 2: Tiền xử lý và làm sạch dữ liệu
 ```bash
 python src/data/preprocess.py
 ```
 *Dữ liệu sạch sau khi tiền xử lý sẽ được lưu tự động tại thư mục `data/processed/`.*
-
-#### Bước 2: Phân tích EDA dữ liệu
-```bash
-python src/data/eda.py
-```
 
 #### Bước 3: Huấn luyện mô hình XLM-RoBERTa (M1)
 *(Nên thực hiện trên môi trường có GPU để tối ưu hóa thời gian huấn luyện)*
@@ -200,7 +218,7 @@ python src/web/web_demo.py
 
 ---
 
-## 6. Kết quả thực nghiệm
+## 7. Kết quả thực nghiệm
 
 ### 1. Đánh giá trên mốc 500 mẫu kiểm thử (Mốc so sánh nhất quán)
 Dưới đây là bảng so sánh hiệu năng của các phương pháp trên **500 mẫu** đầu tiên trích xuất từ tập dữ liệu sạch `test_clean.json`:
@@ -224,7 +242,7 @@ Khi được kiểm chứng trên **toàn bộ 10,275 mẫu** của tập dữ l
 
 ---
 
-## 7. Phân tích lỗi định lượng
+## 8. Phân tích lỗi định lượng
 
 Dựa trên kết quả phân tích lỗi của mô hình M1 trên tập 500 mẫu kiểm thử, các loại lỗi được phân bổ cụ thể như sau:
 
