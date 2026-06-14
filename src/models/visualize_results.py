@@ -69,14 +69,6 @@ OUTPUT_DIR = Path("results/figures")
 
 DEFAULT_RESULTS = [
     {
-        "label":     "B1: BM25-Only",
-        "full_name": "B1: BM25-Only (Rule-based)",
-        "em":  0.80,
-        "f1":  24.31,
-        "note": "Baseline tối thiểu — không dùng model",
-        "type": "baseline",
-    },
-    {
         "label":     "B2: XLM-R Pretrained",
         "full_name": "B2: XLM-RoBERTa Pretrained (SQuAD2)",
         "em":  44.60,
@@ -242,23 +234,7 @@ def load_results_from_json(data_path: str, num_samples: int = 500,
     results = []
     loaded_any_file = False
 
-    # 1. B1: BM25-Only
-    b1_data = try_load_json(paths["b1"])
-    b1_em, b1_f1 = (b1_data.get("exact_match"), b1_data.get("token_f1")) if b1_data else (None, None)
-    if b1_data:
-        loaded_any_file = True
-    if b1_em is None:
-        comp_res = get_from_comparison("BM25-Only")
-        b1_em, b1_f1 = comp_res if comp_res else (0.80, 24.31)
-    results.append({
-        "label":     "B1: BM25-Only",
-        "full_name": "B1: BM25-Only (Rule-based)",
-        "em":  b1_em,
-        "f1":  b1_f1,
-        "note": "Baseline tối thiểu — không dùng model",
-        "type": "baseline",
-        "error_analysis": b1_data.get("error_analysis", []) if b1_data else []
-    })
+
 
     # 2. B2: XLM-R Pretrained
     b2_data = try_load_json(paths["b2"])
@@ -390,15 +366,26 @@ def plot_em_f1_comparison(results: list, out_dir: Path, num_samples: int):
                 fontsize=8.5, fontweight="bold", color="#0891B2")
 
     # Kẻ phân nhóm
-    ax.axvline(x=1.5, color="#CBD5E1", linestyle="--", linewidth=1.0, alpha=0.8)
-    ax.axvline(x=2.5, color="#CBD5E1", linestyle="--", linewidth=1.0, alpha=0.8)
-    
-    ax.text(0.5, 96, "Baselines", ha="center", fontsize=9.5,
-            color="#64748B", fontweight="semibold", style="italic")
-    ax.text(2.0, 96, "Phương pháp chính\n(Fine-tuned)", ha="center", fontsize=9.5,
-            color="#64748B", fontweight="semibold", style="italic")
-    ax.text(3.5 if n >= 5 else 3.0, 96, "Hệ thống Pipeline\n(Retriever-Reader)", ha="center",
-            fontsize=9.5, color="#64748B", fontweight="semibold", style="italic")
+    if n == 4:
+        ax.axvline(x=0.5, color="#CBD5E1", linestyle="--", linewidth=1.0, alpha=0.8)
+        ax.axvline(x=1.5, color="#CBD5E1", linestyle="--", linewidth=1.0, alpha=0.8)
+        
+        ax.text(0.0, 96, "Baselines", ha="center", fontsize=9.5,
+                color="#64748B", fontweight="semibold", style="italic")
+        ax.text(1.0, 96, "Phương pháp chính\n(Fine-tuned)", ha="center", fontsize=9.5,
+                color="#64748B", fontweight="semibold", style="italic")
+        ax.text(2.5, 96, "Hệ thống Pipeline\n(Retriever-Reader)", ha="center",
+                fontsize=9.5, color="#64748B", fontweight="semibold", style="italic")
+    else:
+        ax.axvline(x=1.5, color="#CBD5E1", linestyle="--", linewidth=1.0, alpha=0.8)
+        ax.axvline(x=2.5, color="#CBD5E1", linestyle="--", linewidth=1.0, alpha=0.8)
+        
+        ax.text(0.5, 96, "Baselines", ha="center", fontsize=9.5,
+                color="#64748B", fontweight="semibold", style="italic")
+        ax.text(2.0, 96, "Phương pháp chính\n(Fine-tuned)", ha="center", fontsize=9.5,
+                color="#64748B", fontweight="semibold", style="italic")
+        ax.text(3.5 if n >= 5 else 3.0, 96, "Hệ thống Pipeline\n(Retriever-Reader)", ha="center",
+                fontsize=9.5, color="#64748B", fontweight="semibold", style="italic")
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=9, ha="center")

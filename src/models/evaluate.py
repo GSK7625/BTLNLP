@@ -72,22 +72,12 @@ def run_comparison(data_path: str, num_samples: int, batch_size: int,
 
     results = []
 
-    # ---- B1: BM25-Only ----
-    print("\n" + "="*60)
-    print("  [1/3] Chạy Baseline B1: BM25-Only...")
-    print("="*60)
-    from src.models.baseline_bm25 import evaluate as b1_eval
-    em_b1, f1_b1 = b1_eval(data_path, num_samples)
-    results.append({
-        'name': 'B1: BM25-Only (Rule-based)',
-        'em': em_b1, 'f1': f1_b1,
-        'note': 'Baseline tối thiểu — không dùng model'
-    })
+
 
     # ---- B2: XLM-RoBERTa Pretrained ----
     if not skip_b2:
         print("\n" + "="*60)
-        print("  [2/3] Chạy Baseline B2: XLM-RoBERTa Pretrained...")
+        print("  [1/2] Chạy Baseline B2: XLM-RoBERTa Pretrained...")
         print("="*60)
         from src.models.baseline_pretrained import evaluate as b2_eval
         em_b2, f1_b2 = b2_eval(data_path, model_b2, batch_size, num_samples)
@@ -97,14 +87,14 @@ def run_comparison(data_path: str, num_samples: int, batch_size: int,
             'note': 'Off-the-shelf — chưa fine-tune trên ViSpanExtractQA'
         })
     else:
-        print("\n  [2/3] Bỏ qua B2 (--skip_b2).")
+        print("\n  [1/2] Bỏ qua B2 (--skip_b2).")
         results.append({'name': 'B2: XLM-RoBERTa (pretrained, no FT)', 'em': 'N/A', 'f1': 'N/A',
                         'note': 'Chưa chạy'})
 
     # ---- M1: Fine-tuned XLM-RoBERTa (phương pháp chính) ----
     if model_finetuned:
         print("\n" + "="*60)
-        print("  [3/3] Chạy Phương pháp chính: XLM-RoBERTa Fine-tuned...")
+        print("  [2/2] Chạy Phương pháp chính: XLM-RoBERTa Fine-tuned...")
         print("="*60)
         from src.models.baseline_pretrained import evaluate as ft_eval
         em_ft, f1_ft = ft_eval(data_path, model_finetuned, batch_size, num_samples)
@@ -114,7 +104,7 @@ def run_comparison(data_path: str, num_samples: int, batch_size: int,
             'note': 'Phương pháp chính — fine-tuned trên dữ liệu sạch'
         })
     else:
-        print("\n  [3/3] Chưa có model fine-tuned. Để thêm: --model_finetuned <path>")
+        print("\n  [2/2] Chưa có model fine-tuned. Để thêm: --model_finetuned <path>")
         results.append({
             'name': 'M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)',
             'em': 'N/A', 'f1': 'N/A',
@@ -220,8 +210,6 @@ if __name__ == '__main__':
         # Đọc kết quả có sẵn từ file JSON
         results = []
         for path, name, note in [
-            (b1_path,  'B1: BM25-Only (Rule-based)',
-             'Baseline tối thiểu — không dùng model'),
             (b2_path,  'B2: XLM-RoBERTa Pretrained (SQuAD2)',
              'Off-the-shelf, chưa fine-tune trên ViSpanExtractQA'),
             (m1_path,  'M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)',
