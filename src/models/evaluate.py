@@ -259,6 +259,13 @@ if __name__ == '__main__':
             print(f"  - Chưa có hoặc không tìm thấy kết quả Pipeline: {pipeline_path}")
 
         print_comparison_table(results)
+        
+        # Lưu tổng hợp
+        suffix = f"_comparison_{args.num_samples}samples_results.json" if args.num_samples else "_comparison_results.json"
+        summary_path = str(Path(args.data).parent / suffix)
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+        print(f"  Tổng hợp đã lưu: {summary_path}")
     else:
         run_comparison(
             data_path=args.data,
