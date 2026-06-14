@@ -30,8 +30,18 @@
             </div>
         </header>
 
-        <!-- Main Grid Layout -->
-        <main class="app-grid">
+        <!-- Navigation Tabs -->
+        <div class="app-nav">
+            <button class="nav-btn active" id="nav-demo">
+                <i class="fa-solid fa-keyboard"></i> Hỏi Đáp Trực Tuyến
+            </button>
+            <button class="nav-btn" id="nav-dashboard">
+                <i class="fa-solid fa-chart-line"></i> Bảng Đánh Giá & Biểu Đồ
+            </button>
+        </div>
+
+        <!-- Main Grid Layout (Demo View) -->
+        <main class="app-grid" id="demo-view">
             <!-- Sidebar: Inputs -->
             <section class="panel input-panel">
                 <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Cấu hình & Dữ liệu</h2>
@@ -48,7 +58,7 @@
 
                 <!-- Examples Dropdown -->
                 <div class="form-group">
-                    <label for="example-select">Chọn mẫu ví dụ có sẵn</label>
+                    <label for="example-select">Chọn mẫu có sẵn</label>
                     <div class="select-wrapper">
                         <select id="example-select">
                             <option value="">-- Nhập văn bản tự do --</option>
@@ -56,6 +66,7 @@
                         </select>
                         <i class="fa-solid fa-chevron-down select-arrow"></i>
                     </div>
+                    <div id="example-case-desc" style="display: none; font-size: 11.5px; color: #fbbf24; margin-top: 8px; font-style: italic; line-height: 1.4;"></div>
                 </div>
 
                 <!-- Custom Inputs -->
@@ -134,7 +145,7 @@
                 <div id="empty-state" class="empty-state">
                     <i class="fa-regular fa-comments empty-icon"></i>
                     <h3>Chưa có dữ liệu</h3>
-                    <p>Chọn một ví dụ có sẵn hoặc tự nhập câu hỏi & ngữ cảnh rồi bấm nút <strong>Trực quan hóa</strong> để xem kết quả.</p>
+                    <p>Chọn một mẫu có sẵn hoặc tự nhập câu hỏi & ngữ cảnh rồi bấm nút <strong>Trực quan hóa</strong> để xem kết quả.</p>
                 </div>
 
                 <!-- Results display content -->
@@ -152,16 +163,6 @@
                                 <div class="metric-row">
                                     <span class="metric-label">Câu trả lời:</span>
                                     <div class="predicted-answer-box" id="ans-bm25">-</div>
-                                </div>
-                                <div class="metrics-grid">
-                                    <div class="metric-item">
-                                        <span class="num" id="lat-bm25">0ms</span>
-                                        <span class="lbl">Trễ (Latency)</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="num" id="conf-bm25">-</span>
-                                        <span class="lbl">Độ tin cậy</span>
-                                    </div>
                                 </div>
                                 <div class="gold-metrics" id="gold-metrics-bm25">
                                     <div class="metric-badge-box">
@@ -183,16 +184,6 @@
                                     <span class="metric-label">Câu trả lời:</span>
                                     <div class="predicted-answer-box" id="ans-pretrained">-</div>
                                 </div>
-                                <div class="metrics-grid">
-                                    <div class="metric-item">
-                                        <span class="num" id="lat-pretrained">0ms</span>
-                                        <span class="lbl">Trễ (Latency)</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="num" id="conf-pretrained">-</span>
-                                        <span class="lbl">Độ tin cậy</span>
-                                    </div>
-                                </div>
                                 <div class="gold-metrics" id="gold-metrics-pretrained">
                                     <div class="metric-badge-box">
                                         <span class="metric-badge" id="em-pretrained">EM: -</span>
@@ -212,16 +203,6 @@
                                 <div class="metric-row">
                                     <span class="metric-label">Câu trả lời:</span>
                                     <div class="predicted-answer-box" id="ans-finetuned">-</div>
-                                </div>
-                                <div class="metrics-grid">
-                                    <div class="metric-item">
-                                        <span class="num" id="lat-finetuned">0ms</span>
-                                        <span class="lbl">Trễ (Latency)</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="num" id="conf-finetuned">-</span>
-                                        <span class="lbl">Độ tin cậy</span>
-                                    </div>
                                 </div>
                                 <div class="gold-metrics" id="gold-metrics-finetuned">
                                     <div class="metric-badge-box">
@@ -270,10 +251,70 @@
             </section>
         </main>
 
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="tab-view" style="display: none; margin-bottom: 24px;">
+            <div class="dashboard-grid">
+                <!-- Metrics Table Panel -->
+                <section class="panel table-panel" style="margin-bottom: 24px;">
+                    <h2 class="panel-title"><i class="fa-solid fa-table"></i> Bảng So Sánh Hiệu Năng Thực Tế (500 Mẫu Đánh Giá)</h2>
+                    <div class="table-responsive">
+                        <table class="metrics-table" id="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Mô hình / Phương pháp</th>
+                                    <th class="text-center">Exact Match (EM)</th>
+                                    <th class="text-center">Token F1</th>
+                                    <th>Ghi chú thực nghiệm</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparison-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Charts Panel -->
+                <section class="panel charts-panel">
+                    <h2 class="panel-title"><i class="fa-solid fa-chart-simple"></i> Biểu Đồ Trực Quan Hóa Kết Quả</h2>
+                    
+                    <div class="charts-gallery">
+                        <div class="chart-card">
+                            <h5>Biểu đồ so sánh EM & F1</h5>
+                            <img src="/results/figures/fig1_em_f1_comparison.png" alt="So sánh EM & F1 các mô hình" class="zoomable-img">
+                        </div>
+                        <div class="chart-card">
+                            <h5>Phân phối lỗi M1 (Donut Chart)</h5>
+                            <img src="/results/figures/fig4_error_distribution.png" alt="Phân phối loại lỗi của mô hình Fine-tuned M1" class="zoomable-img">
+                        </div>
+                        <div class="chart-card">
+                            <h5>So sánh phân phối lỗi giữa các mô hình</h5>
+                            <img src="/results/figures/fig5_error_bar.png" alt="So sánh Loại Lỗi giữa các mô hình" class="zoomable-img">
+                        </div>
+                        <div class="chart-card">
+                            <h5>Hiệu quả cải thiện khi kết hợp Pipeline</h5>
+                            <img src="/results/figures/fig6_pipeline_gain.png" alt="Lợi ích cải thiện điểm số của Pipeline kết hợp" class="zoomable-img">
+                        </div>
+                        <div class="chart-card">
+                            <h5>BM25 Retriever Recall Accuracy theo Top-K</h5>
+                            <img src="/results/figures/fig7_retriever_accuracy.png" alt="Recall@K Accuracy của Retriever" class="zoomable-img">
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="app-footer">
             <p>Bài tập lớn môn Xử lý Ngôn ngữ Tự nhiên (NLP) | Nhóm BTL</p>
         </footer>
+    </div>
+
+    <!-- Lightbox Modal for Zooming Charts -->
+    <div id="lightbox" class="lightbox-modal">
+        <span class="lightbox-close" id="lightbox-close">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+        <div class="lightbox-caption" id="lightbox-caption"></div>
     </div>
 
     <!-- Custom App JS -->

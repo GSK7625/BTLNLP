@@ -108,13 +108,15 @@ Bảng dưới đây trình bày kết quả đo lường độ chính xác (Exa
 
 | Mô hình | Exact Match (EM) | Token F1 | Thời gian Inference (CPU/mẫu) | Đặc điểm / Vai trò |
 | :--- | :---: | :---: | :---: | :--- |
-| **B1: BM25-Only (Rule-based)** | 0.80% | 24.31% | ~ 2 ms | Trả về cả câu chứa nhiều từ khóa trùng nhất. Mốc cơ sở tối thiểu. |
-| **B2: XLM-R Pretrained (SQuAD2)** | 44.60% | 70.39% | ~ 110 ms | Checkpoint gốc học trên tiếng Anh, đánh giá zero-shot trên tiếng Việt. |
-| **M1: XLM-R Fine-tuned** | 47.60% | **70.52%** | ~ 110 ms | Mô hình **trọng tâm** được huấn luyện trực tiếp trên ViSpanExtractQA. |
-| **Pipeline: BM25 + B2 Reader** | 58.00% | 81.68% | ~ 115 ms | BM25 truy hồi Top-3 + Pretrained Reader. |
-| **Pipeline: BM25 + M1 Reader** | **64.00%** | **79.16%** | ~ 115 ms | Tốt nhất về EM. BM25 truy hồi Top-3 + Fine-tuned Reader. |
+| **B1: BM25-Only (Rule-based)** | 0.80 | 24.31 | Khớp từ khóa | Trả về cả câu chứa nhiều từ trùng nhất (chưa trích xuất span ngắn). |
+| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất (QA) | Checkpoint gốc chưa thích nghi sâu với ngữ pháp tiếng Việt. |
+| **M1: XLM-RoBERTa Fine-tuned** | **60.60** | **81.05** | **Trích xuất QA** | **Huấn luyện trực tiếp trên tập tiếng Việt sạch (chỉ số độc lập).** |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 38.20 | 62.17 | Kênh kết hợp | BM25 Retriever lọc Top-3 + Pretrained Reader (Retriever Acc: 93.40%). |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | Kênh kết hợp | BM25 Retriever lọc Top-3 + M1 Reader kết hợp Rank Penalty (Tốt nhất trong hệ thống RAG). |
 
-*Lưu ý: Thời gian inference được đo trung bình trên môi trường CPU tiêu chuẩn. Pipeline tốn thêm ~5ms cho bước Retrieval.*
+### Nhận xét & Đánh giá kết quả:
+* **Mô hình chính M1** cải thiện điểm số EM độc lập từ **44.60%** lên **60.60%** (tăng 16%!) và F1 từ **70.39%** lên **81.05%** so với pretrained baseline, chứng minh việc fine-tune trên tập dữ liệu tiếng Việt sạch mang lại khả năng định vị biên câu trả lời xuất sắc hơn rất nhiều.
+* Khi chạy tích hợp hệ thống hỏi đáp thực tế (Pipeline Retriever-Reader), mô hình **BM25 + M1 Reader** đạt điểm **Exact Match là 53.80%** và **F1 là 71.95%**, vượt trội so với baseline pipeline dùng pretrained reader (EM 38.20%, F1 62.17%). Kết quả này cho thấy thuật toán **Rank Penalty** được phát triển đã khắc phục hiệu quả hiện tượng Overconfidence của mô hình khi đọc các ngữ cảnh sai do Retriever truy hồi.
 
 ### 5.2. Thảo luận và Phân tích kết quả thực nghiệm
 

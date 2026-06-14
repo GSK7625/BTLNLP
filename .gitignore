@@ -22,6 +22,9 @@ models/xlmroberta_finetuned/*
 data/processed/*.json
 data/processed/*.csv
 error_analysis.csv
+error_analysis_500.csv
+*.zip
+results/figures_500/
 
 # System files
 .DS_Store

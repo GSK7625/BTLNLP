@@ -10,3 +10,5 @@ protobuf
 sentencepiece
 pdfplumber
 python-dotenv
+matplotlib
+flask

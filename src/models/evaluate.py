@@ -203,6 +203,16 @@ if __name__ == '__main__':
         if m1_path == 'data/processed/test_clean_finetuned_results.json' and args.num_samples:
             m1_path = args.data.replace('.json', f'_finetuned_{args.num_samples}samples_results.json')
 
+        # Fallback to search for fine-tuned model results if the exact file does not exist
+        if not os.path.exists(m1_path):
+            import glob
+            parent_dir = os.path.dirname(m1_path)
+            suffix = f"_{args.num_samples}samples_results.json" if args.num_samples else "_results.json"
+            pattern = os.path.join(parent_dir, f"*finetuned*{suffix}")
+            matching_files = glob.glob(pattern)
+            if matching_files:
+                m1_path = matching_files[0]
+
         pipeline_path = args.pipeline_json
         if pipeline_path == 'data/processed/test_clean_pipeline_results.json' and args.num_samples:
             pipeline_path = args.data.replace('.json', f'_pipeline_{args.num_samples}samples_results.json')

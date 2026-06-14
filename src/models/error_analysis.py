@@ -228,11 +228,41 @@ if __name__ == '__main__':
     parser.add_argument('--num_examples', type=int, default=15)
     args = parser.parse_args()
 
+    m1_res_path = args.m1_results
+    b1_res_path = args.b1_results
+    b2_res_path = args.b2_results
+
+    # Tự động phát hiện kết quả M1 nếu chưa chỉ định
+    if not m1_res_path:
+        import glob
+        parent_dir = os.path.dirname(args.test_data)
+        pattern = os.path.join(parent_dir, "*finetuned*results.json")
+        matching_files = glob.glob(pattern)
+        if matching_files:
+            m1_res_path = matching_files[0]
+            print(f"  [INFO] Tự động chọn kết quả M1: {m1_res_path}")
+
+    # Ánh xạ b1_results và b2_results tương ứng với hậu tố số lượng mẫu của m1_results
+    if m1_res_path and os.path.exists(m1_res_path):
+        for suffix in ["_500samples", "_5000samples"]:
+            if suffix in m1_res_path:
+                if b1_res_path == 'data/processed/test_clean_bm25only_results.json':
+                    alt_b1 = args.test_data.replace('.json', f'_bm25only{suffix}_results.json')
+                    if os.path.exists(alt_b1):
+                        b1_res_path = alt_b1
+                        print(f"  [INFO] Tự động chọn kết quả B1: {b1_res_path}")
+                if b2_res_path == 'data/processed/test_clean_pretrained_deepset_xlm-roberta-base-squad2_results.json':
+                    alt_b2 = args.test_data.replace('.json', f'_pretrained_deepset_xlm-roberta-base-squad2{suffix}_results.json')
+                    if os.path.exists(alt_b2):
+                        b2_res_path = alt_b2
+                        print(f"  [INFO] Tự động chọn kết quả B2: {b2_res_path}")
+                break
+
     run_analysis(
         test_data_path=args.test_data,
-        b1_results_path=args.b1_results,
-        b2_results_path=args.b2_results,
-        m1_results_path=args.m1_results,
+        b1_results_path=b1_res_path,
+        b2_results_path=b2_res_path,
+        m1_results_path=m1_res_path,
         output_csv=args.output_csv,
         num_examples=args.num_examples,
     )
