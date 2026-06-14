@@ -275,7 +275,7 @@ def plot_em_f1_comparison(results: list, out_dir: Path, num_samples: int):
             fontsize=9, color="#757575", style="italic")
 
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=9, ha="center")
+    ax.set_xticklabels(labels, fontsize=8, ha="right", rotation=30)
     ax.set_ylim(0, 100)
     ax.set_ylabel("Điểm (%)", fontweight="bold")
     ax.set_title(
@@ -290,7 +290,7 @@ def plot_em_f1_comparison(results: list, out_dir: Path, num_samples: int):
     ax.spines["right"].set_visible(False)
 
     out_path = out_dir / "fig1_em_f1_comparison.png"
-    fig.savefig(out_path)
+    fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
     print(f"  [OK] {out_path}")
 
