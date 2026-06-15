@@ -121,7 +121,7 @@ def evaluate(data_path: str, num_samples: int = None):
         f1_scores.append(f1)
 
         # Ghi lại mẫu sai để phân tích lỗi
-        if em == 0 and len(error_cases) < 20:
+        if em == 0:
             error_cases.append({
                 'id': sample.get('id', '?'),
                 'question': question,

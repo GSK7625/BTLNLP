@@ -325,7 +325,7 @@ def evaluate_finetuned(model_path: str, test_data_path: str,
         em_scores.append(em)
         f1_scores.append(f1)
 
-        if em == 0 and len(error_cases) < 20:
+        if em == 0:
             ctx = item['context_raw']
             error_cases.append({
                 'id': item.get('id', '?'),

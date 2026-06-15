@@ -11,9 +11,17 @@
 ## 1. Mô tả bài toán & Bối cảnh sử dụng
 
 ### Định nghĩa bài toán
-* **Đầu vào (Input)**: Một **Câu hỏi** ($Q$) bằng tiếng Việt tự nhiên và một **Ngữ cảnh** ($C$) chứa thông tin liên quan đến câu hỏi.
-* **Đầu ra (Output)**: Một **Phân đoạn văn bản** (Span) trích xuất trực tiếp từ ngữ cảnh $C$ đại diện cho câu trả lời chính xác nhất.
-* **Mục tiêu**: Xây dựng mô hình Reader học cách dự đoán chỉ số bắt đầu (Start Index) và kết thúc (End Index) của câu trả lời trong chuỗi token ngữ cảnh.
+Hệ thống được phát triển và đánh giá dựa trên hai chế độ (modes) hoạt động:
+
+1. **Chế độ Đọc hiểu độc lập (Standalone Reader Mode)**:
+   * **Đầu vào (Input)**: Một **Câu hỏi** ($Q$) bằng tiếng Việt tự nhiên và một **Ngữ cảnh** ($C$ - Oracle Context) chứa thông tin liên quan đến câu hỏi.
+   * **Đầu ra (Output)**: Một **Phân đoạn văn bản** (Answer Span) trích xuất trực tiếp từ ngữ cảnh $C$ đại diện cho câu trả lời chính xác nhất.
+   * **Mục tiêu**: Huấn luyện và đánh giá mô hình Reader độc lập để học cách dự đoán chỉ số bắt đầu (Start Index) và kết thúc (End Index) của câu trả lời trong chuỗi token ngữ cảnh.
+
+2. **Chế độ Tìm kiếm kết hợp Đọc hiểu (Retriever-Reader Pipeline Mode)**:
+   * **Đầu vào (Input)**: Chỉ có **Câu hỏi** ($Q$) bằng tiếng Việt tự nhiên và một **Kho tài liệu** ($D$ - Document Corpus) chứa nhiều đoạn văn bản khác nhau.
+   * **Đầu ra (Output)**: Một **Phân đoạn văn bản** (Answer Span) được trích xuất từ một trong những đoạn văn liên quan nhất tìm được từ kho tài liệu $D$.
+   * **Mục tiêu**: Tích hợp bộ truy hồi (Retriever - BM25) để lọc ra Top-K đoạn văn bản liên quan nhất từ kho $D$, sau đó sử dụng mô hình Reader để đọc hiểu và trích xuất ra câu trả lời chính xác nhất.
 
 ### Bối cảnh ứng dụng thực tế
 Hệ thống có thể được ứng dụng và tích hợp trực tiếp vào:
@@ -264,9 +272,9 @@ Khi được kiểm chứng trên **toàn bộ 10,275 mẫu** của tập dữ l
 
 Dựa trên kết quả phân tích lỗi của mô hình M1, các loại lỗi được phân bổ cụ thể như sau (số liệu thống kê chính thức):
 
-*   **Lỗi biên (Span dư thừa/thiếu)**: **46.6%** (Trong đó lỗi trích xuất dư chức danh/mô tả chiếm 45.0%, trích xuất thiếu chiếm 1.6%).
-*   **Sai span hoàn toàn (đáp án có trong ngữ cảnh)**: **41.7%** (Model chọn sai vùng dữ liệu do ngữ cảnh dài hoặc nhiều thực thể gây nhiễu).
-*   **Nhãn nhiễu / Lỗi dữ liệu**: **11.7%** (Lỗi do dữ liệu gốc dịch máy bị lệch từ vựng hoặc paraphrase).
+*   **Lỗi biên (Span dư thừa/thiếu)**: **84.8%** (Mô hình chọn đúng vùng chứa đáp án nhưng trích xuất dư hoặc thiếu các từ ở biên như chức danh, danh xưng).
+*   **Sai span hoàn toàn (đáp án có trong ngữ cảnh)**: **15.2%** (Model chọn sai vùng dữ liệu do ngữ cảnh dài hoặc nhiều thực thể gây nhiễu).
+*   **Nhãn nhiễu / Lỗi dữ liệu**: **0.0%** (Do tập dữ liệu kiểm thử `test_clean.json` đã được lọc sạch các nhiễu dịch máy ở bước tiền xử lý).
 
 ### Các ví dụ lỗi tiêu biểu:
 1. **Lỗi biên (dư thừa từ ngữ cảnh) - 45%**: 

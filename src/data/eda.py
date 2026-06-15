@@ -31,6 +31,93 @@ os.environ["HF_HUB_VERBOSITY"] = "error"
 
 console = Console()
 
+try:
+    import numpy as np
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from scipy.stats import gaussian_kde
+    HAS_PLOT = True
+except ImportError:
+    HAS_PLOT = False
+
+def plot_token_distributions(ctx_len, q_len, a_len):
+    console.print("\n[bold cyan]--- Đang vẽ biểu đồ phân phối độ dài token bằng Seaborn & Matplotlib ---[/bold cyan]")
+    
+    # Thiết lập font tiếng Việt cho Matplotlib
+    for _font in ["Arial", "Tahoma", "DejaVu Sans"]:
+        try:
+            matplotlib.rcParams["font.family"] = _font
+            break
+        except Exception:
+            continue
+            
+    # Áp dụng giao diện Seaborn
+    sns.set_style("white")
+            
+    fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
+    
+    # Lấy xlim_max theo phân vị 99.5 của độ dài ngữ cảnh
+    xlim_max = int(np.percentile(ctx_len, 99.5))
+    x_grid = np.linspace(0, xlim_max, 500)
+    
+    # Tính toán KDE bằng scipy.stats.gaussian_kde chuẩn
+    kde_ctx = gaussian_kde(ctx_len)
+    kde_q = gaussian_kde(q_len)
+    kde_a = gaussian_kde(a_len)
+    
+    # Đánh giá và chuẩn hóa đỉnh về 1.0 để hiển thị rõ trên cùng một trục
+    y_ctx = kde_ctx(x_grid)
+    y_q = kde_q(x_grid)
+    y_a = kde_a(x_grid)
+    
+    norm_ctx = y_ctx / (y_ctx.max() if y_ctx.max() > 0 else 1)
+    norm_q = y_q / (y_q.max() if y_q.max() > 0 else 1)
+    norm_a = y_a / (y_a.max() if y_a.max() > 0 else 1)
+    
+    # Vẽ các đường mật độ và tô vùng dưới đường bằng màu được chỉ định
+    # Màu xanh dương (Context): #1E88E5
+    ax.plot(x_grid, norm_ctx, label="Ngữ cảnh (Context)", color="#1E88E5", linewidth=2.5)
+    ax.fill_between(x_grid, norm_ctx, alpha=0.15, color="#1E88E5")
+    
+    # Màu cam (Question): #FF8F00
+    ax.plot(x_grid, norm_q, label="Câu hỏi (Question)", color="#FF8F00", linewidth=2.2)
+    ax.fill_between(x_grid, norm_q, alpha=0.12, color="#FF8F00")
+    
+    # Màu xanh lá (Answer Span): #4CAF50
+    ax.plot(x_grid, norm_a, label="Đáp án (Answer / Span)", color="#4CAF50", linewidth=2.2)
+    ax.fill_between(x_grid, norm_a, alpha=0.10, color="#4CAF50")
+    
+    # Định dạng trục hoành và trục tung
+    ax.set_xlim(0, xlim_max)
+    ax.set_ylim(0, 1.1)
+    
+    ax.set_title("Phân phối Độ dài Token của các Trường Dữ liệu (Tập Train)", fontsize=13, fontweight="bold", pad=15)
+    ax.set_xlabel("Độ dài văn bản (Số lượng Token) →", fontsize=10, fontweight="semibold", labelpad=10)
+    ax.set_ylabel("Số mẫu (Mật độ chuẩn hóa) ↑", fontsize=10, fontweight="semibold", labelpad=10)
+    
+    # Ẩn các vạch trên trục tung do đã chuẩn hóa
+    ax.set_yticks([])
+    
+    # Thiết lập lưới và đường bao bằng despine của Seaborn
+    ax.grid(True, linestyle="--", linewidth=0.5, color="#E2E8F0", alpha=0.6)
+    sns.despine(ax=ax, left=False, bottom=False)
+    
+    # Tùy chỉnh màu sắc đường viền trục tọa độ
+    ax.spines["left"].set_color("#CBD5E1")
+    ax.spines["bottom"].set_color("#CBD5E1")
+    
+    ax.legend(loc="upper right", frameon=True, facecolor="#F8FAFC", edgecolor="#E2E8F0", fontsize=9)
+    
+    plt.tight_layout()
+    os.makedirs("results/figures", exist_ok=True)
+    out_path = os.path.join("results", "figures", "token_length_distribution.png")
+    plt.savefig(out_path, dpi=200)
+    plt.close()
+    
+    console.print(f"[bold green]✓ Đã vẽ và lưu biểu đồ phân phối độ dài token tại: {out_path}[/bold green]\n")
+
 def run_eda():
     console.print("\n[bold cyan]--- Đang tải dữ liệu để phân tích chi tiết ---[/bold cyan]\n")
     raw_datasets = load_dataset("ntphuc149/ViSpanExtractQA")
@@ -106,6 +193,9 @@ def run_eda():
         # Nếu là tập train, ta gán vào train_records để phần hiển thị mẫu điển hình phía sau hoạt động
         if split_name == 'train':
             train_records = split_records
+            train_ctx_len = df_split['ctx_len'].values
+            train_q_len = df_split['q_len'].values
+            train_a_len = df_split['a_len'].values
             
         for idx, row in enumerate(split_records):
             ctx = str(row['context'])
@@ -452,6 +542,10 @@ def run_eda():
     if examples_mismatch:
         for ex in examples_mismatch:
             show_visual_example(ex, "red", highlight_translation)
+
+    # 4. Trực quan hóa phân phối độ dài token
+    if HAS_PLOT and train_ctx_len is not None:
+        plot_token_distributions(train_ctx_len, train_q_len, train_a_len)
 
 if __name__ == "__main__":
     run_eda()

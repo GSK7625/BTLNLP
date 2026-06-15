@@ -210,7 +210,7 @@ def evaluate_pipeline(data_path: str, model_name: str, num_samples: int = None, 
         f1_scores.append(f1)
         
         # Ghi nhận trường hợp lỗi
-        if em == 0 and len(error_cases) < 20:
+        if em == 0:
             error_cases.append({
                 'id': item.get('id', idx),
                 'question': item['question_raw'],

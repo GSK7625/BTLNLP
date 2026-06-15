@@ -152,7 +152,7 @@ def evaluate(data_path: str, model_name: str, batch_size: int, num_samples: int 
         em_scores.append(em)
         f1_scores.append(f1)
 
-        if em == 0 and len(error_cases) < 20:
+        if em == 0:
             ctx = inputs[idx]['context']
             error_cases.append({
                 'id': sid,

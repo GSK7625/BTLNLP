@@ -25,10 +25,17 @@
 
 ## 2. Giới thiệu bài toán & Bối cảnh sử dụng
 ### Định nghĩa bài toán
-Bài toán Hỏi đáp trích xuất (Extractive Question Answering) là một tác vụ cốt lõi trong xử lý ngôn ngữ tự nhiên. 
-* **Đầu vào (Input)**: Một câu hỏi tự nhiên ($Q$) bằng tiếng Việt và một văn bản ngữ cảnh ($C$) chứa thông tin trả lời.
-* **Đầu ra (Output)**: Một phân đoạn văn bản liên tục (Span) $S \subset C$ đại diện cho câu trả lời chính xác nhất của câu hỏi.
-* **Mô hình hóa toán học**: Mô hình Reader đóng vai trò dự đoán xác suất vị trí bắt đầu (Start Index) và vị trí kết thúc (End Index) của câu trả lời trong chuỗi token của ngữ cảnh $C$.
+Bài toán trong dự án được triển khai và đánh giá dưới hai chế độ (modes) cốt lõi:
+
+1. **Chế độ Đọc hiểu độc lập (Standalone Reader Mode)**:
+   * **Đầu vào (Input)**: Một câu hỏi tự nhiên ($Q$) bằng tiếng Việt và một văn bản ngữ cảnh chuẩn ($C$ - Oracle Context) được cung cấp sẵn chứa thông tin trả lời.
+   * **Đầu ra (Output)**: Một phân đoạn văn bản liên tục (Answer Span) $S \subset C$ đại diện cho câu trả lời chính xác nhất.
+   * **Mục tiêu**: Mô hình Reader học cách dự đoán chỉ số bắt đầu (Start Index) và kết thúc (End Index) của câu trả lời trong chuỗi token của ngữ cảnh $C$.
+
+2. **Chế độ Tìm kiếm kết hợp Đọc hiểu (Retriever-Reader Pipeline Mode)**:
+   * **Đầu vào (Input)**: Chỉ có câu hỏi tự nhiên ($Q$) bằng tiếng Việt (không kèm ngữ cảnh) và một kho tài liệu/cơ sở tri thức gồm nhiều đoạn văn bản khác nhau ($D$ - Document Corpus).
+   * **Đầu ra (Output)**: Một phân đoạn văn bản liên tục (Answer Span) $S$ được trích xuất trực tiếp từ đoạn văn liên quan nhất được truy hồi từ kho tài liệu $D$.
+   * **Mục tiêu**: Kết hợp bộ truy hồi (Retriever - BM25) để tìm kiếm các đoạn văn bản tiềm năng từ kho tài liệu $D$, sau đó dùng mô hình Reader để trích xuất và chấm điểm tin cậy nhằm đưa ra câu trả lời cuối cùng.
 
 ### Bối cảnh ứng dụng thực tế
 Trong thực tế, người dùng thường không có sẵn một ngữ cảnh $C$ cụ thể khi đặt câu hỏi. Thay vào đó, họ tương tác với một cơ sở tri thức lớn (ví dụ: kho văn bản quy chế học vụ, tài liệu nội bộ doanh nghiệp). 
@@ -156,9 +163,9 @@ Quá trình phân tích được thực hiện thông qua module `error_analysis
 
 ### 6.1. Phân phối định lượng các loại lỗi của mô hình M1
 Nhờ có khả năng phân lớp lỗi (Error Profiling) tự động, mô hình M1 ghi nhận 3 nhóm lỗi chính, phần lớn xoay quanh vấn đề định vị biên độ:
-  1. **Lỗi biên (Span dư thừa/thiếu)**: **46.6%** (Trong đó lỗi trích xuất dư chiếm 45.0%, ví dụ: dự đoán "Đại tướng Ngô Xuân Lịch" thay vì "Ngô Xuân Lịch", và lỗi trích xuất thiếu chiếm 1.6%).
-  2. **Sai span hoàn toàn (Wrong span)**: **41.7%** (Model chọn sai câu/vùng trong ngữ cảnh chứa nhiều thực thể tương tự).
-  3. **Nhãn nhiễu / Lỗi dữ liệu**: **11.7%** (Lỗi do dữ liệu gốc chứa đáp án bị paraphrase hoặc lệch dịch máy).
+  1. **Lỗi biên (Span dư thừa/thiếu)**: **84.8%** (Mô hình chọn đúng vùng chứa đáp án nhưng trích xuất dư hoặc thiếu các từ ở biên như chức danh, danh xưng).
+  2. **Sai span hoàn toàn (Wrong span)**: **15.2%** (Model chọn sai câu/vùng trong ngữ cảnh chứa nhiều thực thể tương tự).
+  3. **Nhãn nhiễu / Lỗi dữ liệu**: **0.0%** (Do tập dữ liệu kiểm thử đã được lọc sạch các nhiễu dịch máy ở bước tiền xử lý dữ liệu).
 
 ### 6.2. Phân rã rủi ro của hệ thống Pipeline (Cascading Errors)
 Chúng ta tiến hành phân rã lỗi trên cả hai mốc đánh giá để hiểu rõ sự phân bổ lỗi giữa Retriever và Reader trong Pipeline M1:
@@ -187,22 +194,29 @@ Theo yêu cầu đánh giá, nhóm chọn **7 trường hợp lỗi tiêu biểu
 
 ---
 
-## 7. Công nghệ tự học & Khả năng ứng dụng thực tế
-Trong quá trình thực hiện dự án, nhóm đã tự học và thử nghiệm thành công các công nghệ:
-1. **Hugging Face Tokenizers (Offset Mapping)**: Tự học cách sử dụng offset mapping để dịch chỉ số ký tự trong dữ liệu thô sang chỉ số token tensor dùng cho huấn luyện mạng nơ-ron Transformer.
-   * *Nguồn học*: Tài liệu hướng dẫn Hugging Face Course.
-   * *Ứng dụng*: Xây dựng lớp dữ liệu custom `ViQADataset` trong `train.py`.
-2. **Thư viện Rank-BM25**: Tự tìm hiểu và tích hợp thuật toán BM25 Okapi để xếp hạng độ tương đồng ngữ cảnh cho Retriever.
-   * *Nguồn học*: GitHub open-source Rank-BM25 documentation.
-   * *Ứng dụng*: Module `pipeline_retriever_reader.py`.
-3. **Lập trình Flask Backend & Giao diện Tương tác**: Tự thiết kế trang web hiển thị song song kết quả dự đoán của cả 2 mô hình (B2 Pretrained và M1 Fine-tuned)
-   * *Nguồn học*: Tài liệu Flask chính thức và các mẫu giao diện Bootstrap/CSS.
-   * *Ứng dụng*: Module `web_demo.py` và giao diện HTML/JS.
+## 7. Công nghệ/công cụ nhóm tự học và đánh giá khả năng ứng dụng
 
-### Đánh giá khả năng ứng dụng thực tế, chi phí & rủi ro:
-* **Khả năng ứng dụng**: Rất cao. Có thể triển khai ngay làm cổng thông tin tra cứu tự động cho sinh viên trong trường học nhờ tốc độ phản hồi nhanh (~115ms cho BM25 + XLM-R trên CPU tiêu chuẩn).
-* **Chi phí**: Thấp. Mô hình Reader trích xuất có kích thước vừa phải (1.1 GB weights), hoàn toàn có thể chạy trên CPU thông thường ở môi trường production mà không bắt buộc dùng GPU đắt đỏ như LLM.
-* **Rủi ro**: Rủi ro lớn nhất là mô hình Reader trích xuất thông tin dựa vào ngữ cảnh có sẵn, nếu bộ Retriever tìm sai đoạn văn bản thì câu trả lời chắc chắn sẽ bị sai lệch hoàn toàn.
+### 7.1. Công nghệ tự học và nguồn học
+* **HF Transformers & Tokenizers (Offset Mapping)**: Tự học cơ chế Subword Tokenizer và cách sử dụng `offset_mapping` để ánh xạ vị trí token sang vị trí ký tự gốc. *Nguồn học*: Hugging Face Course.
+* **Thư viện `rank-bm25`**: Tự học thuật toán BM25 Okapi để xếp hạng và truy hồi tài liệu. *Nguồn học*: GitHub `rank-bm25` và lý thuyết BM25.
+* **Thư viện `underthesea`**: Tự học kỹ thuật phân đoạn từ (Word Segmentation) tiếng Việt. *Nguồn học*: Tài liệu Underthesea trên GitHub.
+
+### 7.2. Cách áp dụng vào project
+* **underthesea**: Sử dụng `word_tokenize` trong [preprocess.py](file:///c:/Users/Kien/BTLNLP/src/data/preprocess.py) để tách từ ghép tiếng Việt trước khi đưa vào bộ truy hồi.
+* **rank-bm25**: Xây dựng bộ truy hồi (Retriever) trích xuất Top-5 đoạn văn liên quan trong [pipeline_retriever_reader.py](file:///c:/Users/Kien/BTLNLP/src/models/pipeline_retriever_reader.py).
+* **offset_mapping**: Xác định vị trí start/end token của đáp án trong [train.py](file:///c:/Users/Kien/BTLNLP/src/models/train.py) để huấn luyện mô hình Reader (XLM-RoBERTa).
+
+### 7.3. Đánh giá khả năng ứng dụng
+* **Độ phù hợp**: Phù hợp cao với bài toán Hỏi đáp trích xuất (Extractive QA) tiếng Việt thực tế.
+* **Ưu điểm**: Tách từ tiếng Việt chính xác; BM25 truy hồi cực nhanh (<5ms); XLM-RoBERTa trích xuất câu trả lời chuẩn xác.
+* **Hạn chế**: BM25 chỉ so khớp từ khóa thô (lexical match), dễ bỏ sót từ đồng nghĩa; XLM-R bị giới hạn độ dài context (`max_seq_length`).
+* **Chi phí**: Rất thấp, chạy suy luận mượt mà trên CPU thường (~115ms), dung lượng mô hình nhẹ (~1.1 GB).
+* **Rủi ro**: Lỗi lan truyền (Cascading Errors) — nếu Retriever tìm sai ngữ cảnh, Reader chắc chắn trả lời sai.
+
+### 7.4. Phương án điều chỉnh nếu kết quả chưa đạt
+* **Cải tiến Retriever**: Thay BM25 bằng Dense Passage Retrieval (DPR) dùng mô hình embedding tiếng Việt kết hợp tìm kiếm vector (FAISS).
+* **Cải tiến Reader**: Thêm hậu xử lý lọc bỏ danh xưng thừa (ông, bà, đại tướng... chiếm 84.8% lỗi biên) hoặc tăng `max_seq_length` lên 384/512.
+* **Chuyển hướng LLM Prompting**: Dùng các mô hình sinh (Generative QA) thông qua API (Gemini, GPT) nếu câu hỏi yêu cầu tổng hợp hoặc suy luận phức tạp.
 
 ---
 

@@ -18,9 +18,13 @@
 ---
 
 ### Slide 2: Bài toán & Bối cảnh sử dụng
-* **Định nghĩa bài toán**: Extractive QA (Hỏi đáp trích xuất).
-  * **Đầu vào**: Câu hỏi $Q$ và Ngữ cảnh $C$.
-  * **Đầu ra**: Trích xuất chính xác một phân đoạn câu trả lời ngắn (Answer Span) trực tiếp từ $C$.
+* **Định nghĩa bài toán**: Hỏi đáp trích xuất tiếng Việt (Vietnamese Extractive QA) với 2 chế độ:
+  1. **Đọc hiểu độc lập (Reader-only)**:
+     * **Đầu vào**: Câu hỏi $Q$ và Ngữ cảnh vàng $C$ (chứa câu trả lời).
+     * **Đầu ra**: Phân đoạn câu trả lời (Answer Span) trích xuất từ $C$.
+  2. **Tìm kiếm kết hợp Đọc hiểu (Retriever-Reader Pipeline)**:
+     * **Đầu vào**: Câu hỏi $Q$ và Kho tài liệu $D$ (Document Corpus).
+     * **Đầu ra**: Phân đoạn câu trả lời trích xuất từ đoạn văn liên quan nhất tìm được trong $D$.
 * **Bối cảnh sử dụng**:
   * Tích hợp vào hệ thống hỗ trợ học vụ, tự động tra cứu văn bản quy định của nhà trường để trả lời thắc mắc của sinh viên.
   * Ứng dụng trong RAG (Retrieval-Augmented Generation) để cung cấp tài liệu tham khảo đáng tin cậy, tránh hiện tượng LLM bịa đặt thông tin.
@@ -115,13 +119,13 @@
 
 ### Slide 9: Phân tích lỗi chi tiết (Error Analysis)
 * **Thống kê các nhóm lỗi của mô hình M1**:
-  * **Lỗi biên câu trả lời (Span dư/thiếu)**: **46.6%** (Trích xuất dư chức danh chiếm 45.0% - Ví dụ: Dự đoán `'Đại tướng Ngô Xuân Lịch'` thay vì `'Ngô Xuân Lịch'`, trích xuất thiếu chiếm 1.6%).
-  * **Sai lệch vùng chứa câu trả lời (Wrong span)**: **41.7%** (Thường xảy ra khi context chứa nhiều tên riêng hoặc mốc thời gian gây nhiễu).
-  * **Nhãn nhiễu / Lỗi dữ liệu gốc (Label noise)**: **11.7%**
+  * **Lỗi biên câu trả lời (Span dư/thiếu)**: **84.8%** (Trích xuất dư chức danh hoặc danh xưng - Ví dụ: Dự đoán `'Đại tướng Ngô Xuân Lịch'` thay vì `'Ngô Xuân Lịch'`).
+  * **Sai lệch vùng chứa câu trả lời (Wrong span)**: **15.2%** (Thường xảy ra khi câu hỏi/ngữ cảnh chứa nhiều thực thể tương tự gây nhiễu).
+  * **Nhãn nhiễu / Lỗi dữ liệu gốc (Label noise)**: **0.0%** (Đã được lọc sạch hoàn toàn ở bước tiền xử lý).
 * **Hướng khắc phục**:
   * Hậu xử lý cắt tỉa các danh từ xưng hô, chức danh thông dụng bằng regex hoặc danh sách đen.
   * Sử dụng mô hình NER để phát hiện đúng loại thực thể tương ứng với câu hỏi (ví dụ hỏi "Ai" thì bắt buộc trả về thực thể `PER`).
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Phân tích lỗi định lượng chỉ ra lỗi biên câu trả lời chiếm tỷ lệ cao nhất với 46.6%. Mô hình thường trích xuất thừa chức danh như Thiếu tướng, Giáo sư. Giải pháp là nhóm đề xuất dùng luật hậu xử lý regex hoặc mô hình NER để cắt tỉa danh xưng..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Phân tích lỗi định lượng chỉ ra lỗi biên câu trả lời chiếm tỷ lệ cao nhất với 84.8%. Mô hình thường trích xuất thừa chức danh như Thiếu tướng, Giáo sư. Giải pháp là nhóm đề xuất dùng luật hậu xử lý regex hoặc mô hình NER để cắt tỉa danh xưng..."*
 
 ---
 
