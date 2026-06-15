@@ -220,9 +220,9 @@ Dưới đây là bảng so sánh hiệu năng của các phương pháp trên *
 | Mô hình / Phương pháp | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
 | :--- | :---: | :---: | :---: | :--- |
 | **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất (Deepset) | Mô hình cơ sở chưa qua huấn luyện thích nghi trên ViSpanExtractQA. |
-| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **60.60** | **81.05** | **Trích xuất tối ưu** | **Mô hình đề xuất chính, tinh chỉnh trên dữ liệu tiếng Việt sạch.** |
+| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **60.60** | **81.05** | Trích xuất tối ưu | Mô hình Reader độc lập phục vụ so sánh .|
 | **BM25 + XLM-R Pretrained (Pipeline)** | 37.80 | 61.35 | Retriever + Reader | Tích hợp Top-5 đoạn văn bản (Retriever Acc: 95.00%). |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | Retriever + M1 Reader | Tích hợp Top-5 đoạn văn bản kết hợp Rank Penalty (Hình phạt thứ tự). |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | **Retriever + M1 Reader** | **Phương pháp đề xuất chính của nhóm |
 
 ### 2. Đánh giá trên mốc 5000 mẫu kiểm thử (Mốc kiểm chứng quy mô lớn)
 Dưới đây là bảng so sánh hiệu năng của các phương pháp trên **5000 mẫu** trích xuất từ tập dữ liệu sạch `test_clean.json`:

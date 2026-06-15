@@ -68,11 +68,11 @@
 
 ---
 
-### Slide 6: Mô hình Baseline vs Phương pháp chính
-* **Baseline B2 (XLM-RoBERTa Pretrained)**: Dùng checkpoint lớn `deepset/xlm-roberta-base-squad2` chạy trực tiếp trên tiếng Việt (zero-shot transfer).
-* **Phương pháp chính M1 (XLM-RoBERTa Fine-tuned)**: Fine-tune mô hình trên dữ liệu tiếng Việt sạch đã xử lý lỗi.
-  * *Tham số*: 2 epochs, learning rate = 2e-5, batch size = 8, sliding window stride = 64.
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Chúng em xây dựng baseline là XLM-RoBERTa gốc chưa fine-tune. Phương pháp chính M1 của nhóm là fine-tune XLM-RoBERTa trên tập dữ liệu tiếng Việt sạch của ViSpanExtractQA để tăng cường độ chính xác..."*
+### Slide 6: Mô hình Baseline vs Phương pháp đề xuất chính
+* **Mô hình Baseline (độc lập & pipeline)**: Standalone Reader Pretrained `deepset/xlm-roberta-base-squad2` và Pipeline kết hợp `BM25 + Pretrained Reader`.
+* **Phương pháp đề xuất chính (Pipeline M1)**: Hệ thống pipeline tích hợp **BM25 Retriever + XLM-RoBERTa Fine-tuned Reader** kết hợp thuật toán **Rank Penalty**.
+  * Tinh chỉnh mô hình Reader M1 trên tập tiếng Việt sạch ViSpanExtractQA (3 epochs, learning rate = 2e-5, batch size = 32) trước khi ghép vào pipeline.
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Chúng em xây dựng baseline là mô hình pretrained độc lập và pretrained pipeline. Phương pháp đề xuất chính của nhóm là Pipeline tích hợp BM25 Retriever và Reader M1 đã được fine-tune trên dữ liệu sạch tiếng Việt, kết hợp Rank Penalty để lọc nhiễu..."*
 
 ---
 
@@ -81,12 +81,12 @@
 
 | Mô hình | EM (%) | F1 (%) | Cơ chế xử lý |
 | :--- | :---: | :---: | :--- |
-| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất QA |
-| **M1: XLM-RoBERTa Fine-tuned** | **60.60** | **81.05** | **Trích xuất QA** |
-| **BM25 + XLM-R Pretrained (Pipeline)** | 37.80 | 61.35 | Tích hợp Retriever-Reader |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | **Tích hợp Retriever-Reader (Tốt nhất)** |
+| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Standalone Baseline (Oracle) |
+| **M1: XLM-RoBERTa Fine-tuned** | **60.60** | **81.05** | Reader độc lập (Oracle) |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 37.80 | 61.35 | Pipeline Baseline |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | **Phương pháp đề xuất chính** |
 
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Kết quả thực nghiệm trên 500 mẫu cho thấy mô hình M1 độc lập tinh chỉnh đạt EM 60.60% (tăng 16% so với pretrained). Đối với hệ thống hỏi đáp thực tế, pipeline BM25 + M1 Reader đạt EM 53.80%, vượt trội hơn hẳn so với pretrained pipeline chỉ đạt 37.80%. Điều này chứng minh hiệu quả của việc fine-tuning trên dữ liệu sạch và thuật toán Rank Penalty..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Kết quả thực nghiệm trên 500 mẫu cho thấy mô hình Reader M1 độc lập tinh chỉnh đạt EM 60.60% trên ngữ cảnh chuẩn Oracle. Đối với hệ thống hỏi đáp thực tế, phương pháp đề xuất chính (pipeline BM25 + M1 Reader) đạt EM 53.80%, vượt trội hơn hẳn so với pretrained pipeline chỉ đạt 37.80%. Điều này chứng minh hiệu quả của việc fine-tuning trên dữ liệu sạch và thuật toán Rank Penalty..."*
 
 ---
 
@@ -95,12 +95,12 @@
 
 | Mô hình | EM (%) | F1 (%) | Cơ chế xử lý |
 | :--- | :---: | :---: | :--- |
-| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.32 | 66.52 | Trích xuất QA |
-| **M1: XLM-RoBERTa Fine-tuned** | **56.52** | **76.12** | **Trích xuất QA** |
-| **BM25 + XLM-R Pretrained (Pipeline)** | 34.88 | 52.37 | Tích hợp Retriever-Reader |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **42.44** | **57.51** | **Tích hợp Retriever-Reader (Tốt nhất)** |
+| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.32 | 66.52 | Standalone Baseline (Oracle) |
+| **M1: XLM-RoBERTa Fine-tuned** | **56.52** | **76.12** | Reader độc lập (Oracle) |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 34.88 | 52.37 | Pipeline Baseline |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **42.44** | **57.51** | **Phương pháp đề xuất chính** |
 
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Khi mở rộng kiểm chứng lên 5000 mẫu, xu thế kết quả vẫn nhất quán. Mô hình Fine-tuned M1 đạt EM 56.52% độc lập và Pipeline M1 đạt EM 42.44% (vượt xa mức 34.88% của pretrained pipeline). Dù hiệu năng có giảm nhẹ ở cả hai mốc do không gian tìm kiếm lớn hơn làm giảm độ chính xác của BM25, nhưng hệ thống đề xuất của nhóm vẫn luôn đạt hiệu năng tốt nhất..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Khi mở rộng kiểm chứng lên 5000 mẫu, xu thế kết quả vẫn nhất quán. Mô hình Fine-tuned M1 đạt EM 56.52% độc lập trên Oracle và phương pháp đề xuất chính Pipeline M1 đạt EM 42.44% (vượt xa mức 34.88% của pretrained pipeline). Dù hiệu năng có giảm nhẹ ở cả hai mốc do không gian tìm kiếm lớn hơn làm giảm độ chính xác của BM25, nhưng hệ thống đề xuất chính của nhóm vẫn luôn đạt hiệu năng tốt nhất..."*
 
 ---
 
