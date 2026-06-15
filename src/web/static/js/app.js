@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modeReaderOnly.classList.add('active');
         modeRetrieverReader.classList.remove('active');
         contextGroup.style.display = 'block';
-        retrieverNotice.style.display = 'none';
+        if (retrieverNotice) retrieverNotice.style.display = 'none';
         
         // Reset state
         emptyState.style.display = 'flex';
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modeRetrieverReader.classList.add('active');
         modeReaderOnly.classList.remove('active');
         contextGroup.style.display = 'none';
-        retrieverNotice.style.display = 'block';
+        if (retrieverNotice) retrieverNotice.style.display = 'block';
         
         // Reset state
         emptyState.style.display = 'flex';
