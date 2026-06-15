@@ -95,33 +95,32 @@
 
 | Mô hình | EM (%) | F1 (%) | Cơ chế xử lý |
 | :--- | :---: | :---: | :--- |
-| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.32 | 66.52 | Standalone Baseline (Oracle) |
-| **M1: XLM-RoBERTa Fine-tuned** | **56.52** | **76.12** | Reader độc lập (Oracle) |
-| **BM25 + XLM-R Pretrained (Pipeline)** | 34.88 | 52.37 | Pipeline Baseline |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **42.44** | **57.51** | **Phương pháp đề xuất chính** |
+| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.3 | 66.5 | Standalone Baseline (Oracle) |
+| **M1: XLM-RoBERTa Fine-tuned** | **56.5** | **76.1** | Reader độc lập (Oracle) |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 34.9 | 52.4 | Pipeline Baseline |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **42.4** | **57.5** | **Phương pháp đề xuất chính** |
 
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Khi mở rộng kiểm chứng lên 5000 mẫu, xu thế kết quả vẫn nhất quán. Mô hình Fine-tuned M1 đạt EM 56.52% độc lập trên Oracle và phương pháp đề xuất chính Pipeline M1 đạt EM 42.44% (vượt xa mức 34.88% của pretrained pipeline). Dù hiệu năng có giảm nhẹ ở cả hai mốc do không gian tìm kiếm lớn hơn làm giảm độ chính xác của BM25, nhưng hệ thống đề xuất chính của nhóm vẫn luôn đạt hiệu năng tốt nhất..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Khi mở rộng kiểm chứng lên 5000 mẫu, xu thế kết quả vẫn nhất quán. Mô hình Fine-tuned M1 đạt EM 56.5% độc lập trên Oracle và phương pháp đề xuất chính Pipeline M1 đạt EM 42.4% (vượt xa mức 34.9% của pretrained pipeline). Dù hiệu năng có giảm nhẹ ở cả hai mốc do không gian tìm kiếm lớn hơn làm giảm độ chính xác của BM25, nhưng hệ thống đề xuất chính của nhóm vẫn luôn đạt hiệu năng tốt nhất..."*
 
 ---
 
 ### Slide 8: Phân tích & Nhận xét kết quả
 * **Hiệu ứng của việc Fine-tuning**: Mô hình M1 học được cách căn chỉnh biên tốt hơn trên tập tiếng Việt sạch, cải thiện mạnh mẽ cả EM và F1 nhờ quá trình lọc nhiễu dữ liệu.
 * **Sức mạnh của Pipeline kết hợp**:
-  * Retriever (BM25) đạt độ chính xác **Top-5 Retrieval Accuracy đạt 95.00% ở mốc 500 mẫu và 85.34% ở mốc 5000 mẫu** (Top-3 đạt 93.40% và 82.00%).
+  * Retriever (BM25) đạt độ chính xác **Top-5 Retrieval Accuracy đạt 95.0% ở mốc 500 mẫu và 85.3% ở mốc 5000 mẫu** (Top-3 đạt 93.4% và 82.0%).
   * Bộ lọc Retriever làm giảm chiều dài ngữ cảnh đầu vào của Reader, tránh hiện tượng mô hình Reader bị phân tán sự chú ý khi văn bản quá dài.
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Nhận xét chính là việc tích hợp Retriever giúp Reader hoạt động hiệu quả hơn hẳn. Do bộ Retriever lọc trúng văn bản liên quan tới 95.00% (ở mốc 500) và 85.34% (ở mốc 5000), giúp loại bỏ ngữ cảnh nhiễu, làm giảm chiều dài ngữ cảnh đầu vào của Reader, tránh hiện tượng mô hình Reader bị phân tán sự chú ý khi văn bản quá dài."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Nhận xét chính là việc tích hợp Retriever giúp Reader hoạt động hiệu quả hơn hẳn. Do bộ Retriever lọc trúng văn bản liên quan tới 95.0% (ở mốc 500) và 85.3% (ở mốc 5000), giúp loại bỏ ngữ cảnh nhiễu, làm giảm chiều dài ngữ cảnh đầu vào của Reader, tránh hiện tượng mô hình Reader bị phân tán sự chú ý khi văn bản quá dài."*
 
 ---
 
 ### Slide 9: Phân tích lỗi chi tiết (Error Analysis)
-* **Thống kê các nhóm lỗi của mô hình M1**:
-  * **Lỗi biên câu trả lời (Span dư/thiếu)**: **46.6%** (Trích xuất dư chức danh chiếm 45.0% - Ví dụ: Dự đoán `'Đại tướng Ngô Xuân Lịch'` thay vì `'Ngô Xuân Lịch'`, trích xuất thiếu chiếm 1.6%).
-  * **Sai lệch vùng chứa câu trả lời (Wrong span)**: **41.7%** (Thường xảy ra khi context chứa nhiều tên riêng hoặc mốc thời gian gây nhiễu).
-  * **Nhãn nhiễu / Lỗi dữ liệu gốc (Label noise)**: **11.7%**
+* **Thống kê các nhóm lỗi của mô hình M1 (trên 5000 mẫu)**:
+  * **Lỗi biên câu trả lời (Span dư/thiếu)**: **75.0%** (Đa số là trích xuất dư chức danh như Thiếu tướng, Giáo sư).
+  * **Sai lệch vùng chứa câu trả lời (Wrong span)**: **25.0%** (Xảy ra khi context chứa nhiều tên riêng hoặc mốc thời gian gây nhiễu).
 * **Hướng khắc phục**:
   * Hậu xử lý cắt tỉa các danh từ xưng hô, chức danh thông dụng bằng regex hoặc danh sách đen.
   * Sử dụng mô hình NER để phát hiện đúng loại thực thể tương ứng với câu hỏi (ví dụ hỏi "Ai" thì bắt buộc trả về thực thể `PER`).
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Phân tích lỗi định lượng chỉ ra lỗi biên câu trả lời chiếm tỷ lệ cao nhất với 46.6%. Mô hình thường trích xuất thừa chức danh như Thiếu tướng, Giáo sư. Giải pháp là nhóm đề xuất dùng luật hậu xử lý regex hoặc mô hình NER để cắt tỉa danh xưng..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Phân tích lỗi định lượng trên 5000 mẫu chỉ ra lỗi biên câu trả lời chiếm tỷ lệ cao nhất với 75.0%. Mô hình định vị đúng vùng thông tin nhưng trích xuất thừa chức danh. Nhóm lỗi thứ 2 là sai span hoàn toàn chiếm 25.0%. Giải pháp đề xuất là dùng luật hậu xử lý regex hoặc mô hình NER để cắt tỉa danh xưng..."*
 
 ---
 
@@ -149,7 +148,7 @@
 
 ### Slide 12: Kết luận & Hướng phát triển
 * **Kết luận**:
-  * Dự án đã xây dựng hoàn chỉnh và chạy thực nghiệm thành công hệ thống hỏi đáp trích xuất tiếng Việt đạt điểm EM tốt nhất là 60.60% (độc lập) và 53.80% (truy hồi pipeline).
+  * Dự án đã xây dựng hoàn chỉnh và chạy thực nghiệm thành công hệ thống hỏi đáp trích xuất tiếng Việt đạt điểm EM tốt nhất là 56.5% (độc lập) và 42.4% (truy hồi pipeline) trên tập kiểm thử mở rộng 5000 mẫu.
   * Thực hiện tiền xử lý triệt để, khắc phục lỗi căn chỉnh nhãn của tập dữ liệu gốc.
 * **Hướng phát triển tương lai**:
   * Thay thế BM25 bằng bộ truy hồi ngữ nghĩa Dense Passage Retrieval (DPR) sử dụng mô hình embedding tiếng Việt (PhoBERT, SBERT).

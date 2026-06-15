@@ -229,10 +229,10 @@ Dưới đây là bảng so sánh hiệu năng của các phương pháp trên *
 
 | Mô hình / Phương pháp | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
 | :--- | :---: | :---: | :---: | :--- |
-| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.32 | 66.52 | Trích xuất (Deepset) | Mô hình cơ sở chưa qua huấn luyện thích nghi trên ViSpanExtractQA. |
-| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **56.52** | **76.12** | **Trích xuất tối ưu** | **Mô hình đề xuất chính, tinh chỉnh trên dữ liệu tiếng Việt sạch.** |
-| **BM25 + XLM-R Pretrained (Pipeline)** | 34.88 | 52.37 | Retriever + Reader | Tích hợp Top-5 đoạn văn bản (Retriever Acc: 85.34%). |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **42.44** | **57.51** | Retriever + M1 Reader | Tích hợp Top-5 đoạn văn bản kết hợp Rank Penalty (Hình phạt thứ tự). |
+| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.3 | 66.5 | Trích xuất (Deepset) | Mô hình cơ sở chưa qua huấn luyện thích nghi trên ViSpanExtractQA. |
+| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **56.5** | **76.1** | **Trích xuất tối ưu** | **Mô hình đề xuất chính, tinh chỉnh trên dữ liệu tiếng Việt sạch.** |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 34.9 | 52.4 | Retriever + Reader | Tích hợp Top-5 đoạn văn bản (Retriever Acc: 85.3%). |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **42.4** | **57.5** | Retriever + M1 Reader | Tích hợp Top-5 đoạn văn bản kết hợp Rank Penalty (Hình phạt thứ tự). |
 
 > [!NOTE]
 > * **Exact Match (EM)**: Tỷ lệ phần trăm câu trả lời dự đoán trùng khớp hoàn toàn từng ký tự với nhãn gốc (sau khi chuẩn hóa).
@@ -247,18 +247,17 @@ Khi được kiểm chứng trên **toàn bộ 10,275 mẫu** của tập dữ l
 
 ## 8. Phân tích lỗi định lượng
 
-Dựa trên kết quả phân tích lỗi của mô hình M1, các loại lỗi được phân bổ cụ thể như sau (số liệu thống kê chính thức):
+Dựa trên kết quả phân tích lỗi của mô hình M1 trên tập kiểm thử 5000 mẫu, các loại lỗi được phân bổ cụ thể như sau (số liệu thống kê chính thức):
 
-*   **Lỗi biên (Span dư thừa/thiếu)**: **46.6%** (Trong đó lỗi trích xuất dư chức danh/mô tả chiếm 45.0%, trích xuất thiếu chiếm 1.6%).
-*   **Sai span hoàn toàn (đáp án có trong ngữ cảnh)**: **41.7%** (Model chọn sai vùng dữ liệu do ngữ cảnh dài hoặc nhiều thực thể gây nhiễu).
-*   **Nhãn nhiễu / Lỗi dữ liệu**: **11.7%** (Lỗi do dữ liệu gốc dịch máy bị lệch từ vựng hoặc paraphrase).
+*   **Lỗi biên (Span dư thừa/thiếu)**: **75.0%** (Phần lớn do lỗi trích xuất dư chức danh/mô tả).
+*   **Sai span hoàn toàn (đáp án có trong ngữ cảnh)**: **25.0%** (Model chọn sai vùng dữ liệu do ngữ cảnh dài hoặc nhiều thực thể gây nhiễu).
 
 ### Các ví dụ lỗi tiêu biểu:
-1. **Lỗi biên (dư thừa từ ngữ cảnh) - 45%**: 
+1. **Lỗi biên (dư thừa từ ngữ cảnh) - 75.0%**: 
    * *Câu hỏi*: "Ai là bộ trưởng bộ quốc phòng Việt Nam?"
    * *Nhãn gốc*: `Ngô Xuân Lịch`
    * *Mô hình dự đoán*: `Đại tướng Ngô Xuân Lịch` (Dư thừa chức danh quân hàm).
-2. **Sai lệch span hoàn toàn - 41.7%**:
+2. **Sai lệch span hoàn toàn - 25.0%**:
    * Thường xuất hiện trong các đoạn văn dài chứa nhiều thực thể có cùng kiểu (ví dụ: đoạn văn có nhiều tên người hoặc nhiều mốc thời gian khác nhau) dẫn đến mô hình bị phân tán xác suất trích xuất.
 
 ### Hướng cải thiện đề xuất:
