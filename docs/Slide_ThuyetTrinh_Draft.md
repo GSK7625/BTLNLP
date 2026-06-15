@@ -69,11 +69,10 @@
 ---
 
 ### Slide 6: Mô hình Baseline vs Phương pháp chính
-* **Baseline B1 (BM25-Only)**: Truy hồi đoạn văn chứa câu hỏi và trả về cả câu chứa nhiều từ khóa trùng nhất (không dùng học sâu).
 * **Baseline B2 (XLM-RoBERTa Pretrained)**: Dùng checkpoint lớn `deepset/xlm-roberta-base-squad2` chạy trực tiếp trên tiếng Việt (zero-shot transfer).
 * **Phương pháp chính M1 (XLM-RoBERTa Fine-tuned)**: Fine-tune mô hình trên dữ liệu tiếng Việt sạch đã xử lý lỗi.
   * *Tham số*: 2 epochs, learning rate = 2e-5, batch size = 8, sliding window stride = 64.
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Chúng em xây dựng 2 baseline là BM25-Only và XLM-RoBERTa gốc chưa fine-tune. Phương pháp chính M1 của nhóm là fine-tune XLM-RoBERTa trên tập dữ liệu tiếng Việt sạch của ViSpanExtractQA để tăng cường độ chính xác..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Chúng em xây dựng baseline là XLM-RoBERTa gốc chưa fine-tune. Phương pháp chính M1 của nhóm là fine-tune XLM-RoBERTa trên tập dữ liệu tiếng Việt sạch của ViSpanExtractQA để tăng cường độ chính xác..."*
 
 ---
 
@@ -82,13 +81,12 @@
 
 | Mô hình | EM (%) | F1 (%) | Cơ chế xử lý |
 | :--- | :---: | :---: | :--- |
-| **B1: BM25-Only (Rule-based)** | 0.80 | 24.31 | Khớp từ khóa |
 | **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất QA |
-| **M1: XLM-RoBERTa Fine-tuned** | **47.60** | **70.52** | **Trích xuất QA** |
-| **BM25 + XLM-R Pretrained (Pipeline)** | **58.00** | **81.68** | **Tích hợp Retriever-Reader** |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **64.00** | **79.16** | **Tích hợp Retriever-Reader (Tốt nhất)** |
+| **M1: XLM-RoBERTa Fine-tuned** | **60.60** | **81.05** | **Trích xuất QA** |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 38.20 | 62.17 | Tích hợp Retriever-Reader |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | **Tích hợp Retriever-Reader (Tốt nhất)** |
 
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Kết quả thực nghiệm trên 500 mẫu test set cho thấy, mô hình M1 độc lập đạt EM 47.60% (tăng 3% so với pretrained). Đặc biệt, khi tích hợp pipeline Retriever-Reader, điểm EM tăng mạnh lên 64.00% nhờ bộ Retriever lọc bớt nhiễu ngữ cảnh..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Kết quả thực nghiệm trên 500 mẫu test set cho thấy, mô hình M1 độc lập tinh chỉnh đạt EM 60.60% (tăng 16% so với pretrained). Đặc biệt, đối với hệ thống hỏi đáp Retriever-Reader thực tế, pipeline BM25 + M1 Reader đạt EM 53.80% (vượt trội so với pretrained pipeline chỉ đạt 38.20%). Điều này chứng minh hiệu quả của việc fine-tune và giải pháp Rank Penalty do nhóm tự nghiên cứu..."*
 
 ---
 
@@ -141,15 +139,15 @@
 * **Các tính năng nổi bật của Web Demo**:
   * Hỗ trợ 2 chế độ: **Đọc hiểu (Reader-only)** và **Tìm kiếm (Retriever-Reader)**.
   * Cho phép chọn các ví dụ mẫu có sẵn hoặc người dùng tự nhập ngữ cảnh và câu hỏi tùy ý.
-  * Hiển thị song song kết quả của các mô hình: BM25, XLM-R Pretrained và M1 Fine-tuned.
+  * Hiển thị song song kết quả của các mô hình: XLM-R Pretrained và M1 Fine-tuned.
   * Trực quan hóa điểm tin cậy (Confidence Score) và thời gian xử lý (Latency).
-* **Kịch bản thuyết trình (Speaker Notes)**: *"Đây là giao diện Web UI tương tác mà nhóm đã phát triển. Trang web cho phép hiển thị song song kết quả của các mô hình để so sánh trực quan, kèm thời gian phản hồi thực tế của hệ thống..."*
+* **Kịch bản thuyết trình (Speaker Notes)**: *"Đây là giao diện Web UI tương tác mà nhóm đã phát triển. Trang web cho phép hiển thị song song kết quả của các mô hình XLM-R Pretrained và Fine-tuned để so sánh trực quan, kèm thời gian phản hồi thực tế của hệ thống..."*
 
 ---
 
 ### Slide 12: Kết luận & Hướng phát triển
 * **Kết luận**:
-  * Dự án đã xây dựng hoàn chỉnh và chạy thực nghiệm thành công hệ thống hỏi đáp trích xuất tiếng Việt đạt điểm EM tốt nhất là 64.00%.
+  * Dự án đã xây dựng hoàn chỉnh và chạy thực nghiệm thành công hệ thống hỏi đáp trích xuất tiếng Việt đạt điểm EM tốt nhất là 60.60% (độc lập) và 53.80% (truy hồi pipeline).
   * Thực hiện tiền xử lý triệt để, khắc phục lỗi căn chỉnh nhãn của tập dữ liệu gốc.
 * **Hướng phát triển tương lai**:
   * Thay thế BM25 bằng bộ truy hồi ngữ nghĩa Dense Passage Retrieval (DPR) sử dụng mô hình embedding tiếng Việt (PhoBERT, SBERT).

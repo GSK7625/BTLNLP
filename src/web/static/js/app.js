@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // State variables
     let preloadedExamples = [];
     let currentResults = null;
-    let activeTabModel = 'bm25'; // Default active tab
+    let activeTabModel = 'finetuned'; // Default active tab
     let currentMode = 'reader'; // 'reader' or 'pipeline'
     let currentContext = '';
     let currentRetrievedContexts = [];
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
             opt.value = ex.id;
             // Shorten question to fit nicely
             const qShort = ex.question.length > 50 ? ex.question.substring(0, 50) + '...' : ex.question;
-            opt.textContent = `[${ex.id.startsWith('ex_') ? 'Ví dụ' : 'Test'}] ${qShort}`;
+            opt.textContent = qShort;
             exampleSelect.appendChild(opt);
         });
     }
@@ -112,12 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle example selection
     exampleSelect.addEventListener('change', (e) => {
         const selectedId = e.target.value;
+        const descDiv = document.getElementById('example-case-desc');
+        
         if (!selectedId) {
             // User chose custom input option
             contextInput.value = '';
             questionInput.value = '';
             goldInput.value = '';
             goldAnswerGroup.style.display = 'none';
+            descDiv.style.display = 'none';
             return;
         }
         
@@ -132,6 +135,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 goldInput.value = '';
                 goldAnswerGroup.style.display = 'none';
             }
+            
+            if (example.case_description) {
+                descDiv.textContent = example.case_description;
+                descDiv.style.display = 'block';
+            } else {
+                descDiv.style.display = 'none';
+            }
+        } else {
+            descDiv.style.display = 'none';
         }
     });
 
@@ -210,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 badge.style.color = '#22d3ee';
                 badge.style.fontSize = '12px';
                 badge.style.marginBottom = '12px';
-                badge.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> BM25 đã truy hồi đoạn văn này từ kho tài liệu trong <strong>${data.retrieval_latency_ms}ms</strong>.`;
+                badge.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> BM25 đã truy hồi đoạn văn này từ kho tài liệu mẫu.`;
                 
                 // Remove existing notice badges in section
                 const existing = highlightViewer.parentNode.querySelector('.retrieval-badge');
@@ -247,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 : currentContext;
             renderHighlight(contextToRender, activeTabModel);
             
-            // Render Top-3 retrieved contexts list
+            // Render Top-5 retrieved contexts list
             if (currentMode === 'pipeline') {
                 retrievedContextsSection.style.display = 'block';
                 currentRetrievedContexts = data.retrieved_contexts || [];
@@ -277,8 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedModels.includes('bm25') && results.bm25) {
             const res = results.bm25;
             document.getElementById('ans-bm25').textContent = res.answer || '(Trống)';
-            document.getElementById('lat-bm25').textContent = `${res.latency_ms}ms`;
-            document.getElementById('conf-bm25').textContent = '1.000';
             updateGoldBadges('bm25', res);
         }
         
@@ -286,8 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedModels.includes('pretrained') && results.pretrained) {
             const res = results.pretrained;
             document.getElementById('ans-pretrained').textContent = res.answer || '(Trống)';
-            document.getElementById('lat-pretrained').textContent = `${res.latency_ms}ms`;
-            document.getElementById('conf-pretrained').textContent = res.confidence !== undefined ? res.confidence.toFixed(3) : 'N/A';
             updateGoldBadges('pretrained', res);
         }
         
@@ -295,8 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedModels.includes('finetuned') && results.finetuned) {
             const res = results.finetuned;
             document.getElementById('ans-finetuned').textContent = res.answer || '(Trống)';
-            document.getElementById('lat-finetuned').textContent = `${res.latency_ms}ms`;
-            document.getElementById('conf-finetuned').textContent = res.confidence !== undefined ? res.confidence.toFixed(3) : 'N/A';
             updateGoldBadges('finetuned', res);
         }
     }
@@ -406,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Render list of top-3 retrieved contexts
+    // Render list of top-5 retrieved contexts
     function renderRetrievedContextsList(contexts, activeModel) {
         retrievedContextsList.innerHTML = '';
         if (!contexts || contexts.length === 0) return;
@@ -466,5 +472,92 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const existing = highlightViewer.parentNode.querySelector('.retrieval-badge');
         if (existing) existing.remove();
+    });
+
+    // Navigation tabs
+    const navDemo = document.getElementById('nav-demo');
+    const navDashboard = document.getElementById('nav-dashboard');
+    const demoView = document.getElementById('demo-view');
+    const dashboardView = document.getElementById('dashboard-view');
+
+    navDemo.addEventListener('click', () => {
+        navDemo.classList.add('active');
+        navDashboard.classList.remove('active');
+        demoView.style.display = 'grid';
+        dashboardView.style.display = 'none';
+    });
+
+    navDashboard.addEventListener('click', () => {
+        navDashboard.classList.add('active');
+        navDemo.classList.remove('active');
+        demoView.style.display = 'none';
+        dashboardView.style.display = 'block';
+        loadDashboardData();
+    });
+
+    function loadDashboardData() {
+        const tableBody = document.getElementById('comparison-table-body');
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Đang tải dữ liệu thực nghiệm...</td></tr>';
+        
+        fetch('/api/comparison')
+            .then(res => res.json())
+            .then(data => {
+                tableBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Không tìm thấy dữ liệu.</td></tr>';
+                    return;
+                }
+                
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    // Highlight the proposed method or best pipeline row
+                    const name = row.name || '';
+                    if (name.includes('M1: XLM-RoBERTa Fine-tuned') || name.includes('M1: XLM-R Fine-tuned')) {
+                        tr.className = 'bold-row';
+                    } else if (name.includes('Pipeline M1') || name.includes('Pipeline')) {
+                        tr.className = 'bold-row-blue';
+                    }
+                    
+                    const emVal = typeof row.em === 'number' ? `${row.em.toFixed(2)}%` : row.em;
+                    const f1Val = typeof row.f1 === 'number' ? `${row.f1.toFixed(2)}%` : row.f1;
+                    
+                    tr.innerHTML = `
+                        <td><strong>${escapeHtml(name)}</strong></td>
+                        <td class="text-center"><strong>${emVal}</strong></td>
+                        <td class="text-center"><strong>${f1Val}</strong></td>
+                        <td>${escapeHtml(row.note || '')}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                tableBody.innerHTML = '<tr><td colspan="4" class="text-center" style="color:#ef4444;">Lỗi khi tải dữ liệu từ server.</td></tr>';
+            });
+    }
+
+    // Lightbox modal logic
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    document.querySelectorAll('.zoomable-img').forEach(img => {
+        img.addEventListener('click', () => {
+            lightbox.style.display = 'flex';
+            lightboxImg.src = img.src;
+            lightboxCaption.textContent = img.alt;
+        });
+    });
+
+    lightboxClose.addEventListener('click', () => {
+        lightbox.style.display = 'none';
+    });
+
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox || e.target === lightboxClose) {
+            lightbox.style.display = 'none';
+        }
     });
 });

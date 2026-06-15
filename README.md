@@ -1,220 +1,261 @@
-# 🇻🇳 Vietnamese Extractive Question Answering — BM25 & XLM-RoBERTa
+# Vietnamese Extractive Question Answering — BM25 & XLM-RoBERTa
 
 > **BÀI TẬP LỚN CUỐI KỲ: XỬ LÝ NGÔN NGỮ TỰ NHIÊN (NLP)**
 > 
-> * **Đơn vị**: Khoa Công nghệ Thông tin - Trường Đại học Xây dựng Hà Nội
+> * **Đơn vị**: Khoa Công nghệ Thông tin - Trường Đại học Xây dựng Hà Nội (HUCE)
 > * **Bài toán**: Extractive Question Answering (Hỏi đáp trích xuất tiếng Việt)
 > * **Dữ liệu**: [ntphuc149/ViSpanExtractQA](https://huggingface.co/datasets/ntphuc149/ViSpanExtractQA)
 
 ---
 
-## 📊 1. Mô tả bài toán & Bối cảnh sử dụng [CLO1]
+## 1. Mô tả bài toán & Bối cảnh sử dụng
 
 ### Định nghĩa bài toán
-* **Input**: Một **Câu hỏi** ($Q$) bằng tiếng Việt tự nhiên và một **Ngữ cảnh** ($C$) chứa thông tin liên quan đến câu hỏi.
-* **Output**: Một **Phân đoạn văn bản** (Span) trích xuất trực tiếp từ $C$ đại diện cho câu trả lời chính xác nhất.
-* **Mục tiêu**: Xây dựng mô hình Reader học cách dự đoán cặp chỉ số bắt đầu (Start Index) và kết thúc (End Index) của câu trả lời trong chuỗi token ngữ cảnh.
+* **Đầu vào (Input)**: Một **Câu hỏi** ($Q$) bằng tiếng Việt tự nhiên và một **Ngữ cảnh** ($C$) chứa thông tin liên quan đến câu hỏi.
+* **Đầu ra (Output)**: Một **Phân đoạn văn bản** (Span) trích xuất trực tiếp từ ngữ cảnh $C$ đại diện cho câu trả lời chính xác nhất.
+* **Mục tiêu**: Xây dựng mô hình Reader học cách dự đoán chỉ số bắt đầu (Start Index) và kết thúc (End Index) của câu trả lời trong chuỗi token ngữ cảnh.
 
 ### Bối cảnh ứng dụng thực tế
-Hệ thống có thể được tích hợp trực tiếp vào:
-* Cổng thông tin hỗ trợ học vụ, hỗ trợ sinh viên trả lời nhanh các câu hỏi quy chế từ văn bản hướng dẫn hành chính.
-* Hệ thống tra cứu văn bản pháp luật, tài liệu nội bộ doanh nghiệp.
-* Công cụ chatbot thông minh trả lời dựa trên kho tri thức (RAG - Retrieval-Augmented Generation).
+Hệ thống có thể được ứng dụng và tích hợp trực tiếp vào:
+* Cổng thông tin hỗ trợ học vụ, hỗ trợ sinh viên tra cứu nhanh các câu hỏi quy chế từ văn bản hướng dẫn hành chính.
+* Hệ thống tra cứu văn bản pháp luật, tài liệu nội bộ và quy trình doanh nghiệp.
+* Công cụ chatbot thông minh trả lời dựa trên kho tri thức kết hợp (RAG - Retrieval-Augmented Generation).
 
 ---
 
-## 🛠️ 2. Kiến trúc hệ thống & Pipeline xử lý [CLO2]
+## 2. Kiến trúc hệ thống & Pipeline xử lý
 
-Hệ thống được thiết kế theo kiến trúc **Retriever–Reader** tích hợp đầy đủ từ tiền xử lý đến giao diện trực quan:
-
-```mermaid
-graph TD
-    User["Người dùng (Web UI / CLI)"] -->|Câu hỏi + Ngữ cảnh| Preprocess["Tiền xử lý văn bản (NFC Normalization, Sửa Casing)"]
-    Preprocess -->|Văn bản sạch| Reader["Reader Module"]
-    subgraph Readers["Mô hình Reader (Trích xuất)"]
-        Reader -->|B1| BM25["Simple BM25 Selector (Rule-based)"]
-        Reader -->|B2| XLMR_Pre["XLM-RoBERTa Pretrained (SQuAD2)"]
-        Reader -->|M1| XLMR_FT["XLM-RoBERTa Fine-tuned (ViSpanExtractQA)"]
-        Reader -->|MR| Qwen["Qwen2.5-Instruct (Generative Reader)"]
-    end
-    BM25 -->|Trích xuất câu chứa đáp án| Output["Câu trả lời (Span)"]
-    XLMR_Pre -->|Trích xuất Span tối ưu| Output
-    XLMR_FT -->|Trích xuất Span tối ưu| Output
-    Qwen -->|Sinh câu trả lời ngắn| Output
-```
+Hệ thống được thiết kế theo kiến trúc **Retriever–Reader** tích hợp đầy đủ từ tiền xử lý đến giao diện trực quan.
 
 ---
 
-## 📂 3. Cấu trúc thư mục dự án
+## 3. Cấu trúc thư mục dự án
 
 ```
 BTLNLP/
 │
 ├── data/                       # Dữ liệu dự án
-│   └── processed/              # Dữ liệu sạch sau tiền xử lý
-│       ├── train_clean.json        # 196 MB
-│       ├── validation_clean.json   # 24.5 MB
-│       ├── test_clean.json         # 24.5 MB
-│       ├── comparison_results.json # Tệp tổng hợp kết quả
-│       └── *_results.json          # Tệp chi tiết kết quả từng model
+│   └── processed/              # Dữ liệu sạch sau tiền xử lý và kết quả thực nghiệm
+│       ├── train_clean.json        # Dữ liệu huấn luyện đã làm sạch (~196 MB)
+│       ├── validation_clean.json   # Dữ liệu kiểm định đã làm sạch (~24.5 MB)
+│       ├── test_clean.json         # Dữ liệu kiểm thử đã làm sạch (~24.5 MB)
+│       ├── _comparison_500samples_results.json # Tệp so sánh các mô hình trên mốc 500 mẫu
+│       ├── test_clean_pipeline_500samples_results.json # Kết quả chạy pipeline (500 mẫu)
+│       └── test_clean_finetuned_results.json           # Kết quả huấn luyện M1 trên toàn bộ test set
 │
 ├── docs/                       # Tài liệu môn học, đề bài PDF
 │   └── Project cuối kỳ.pdf
 │
-├── models/                     # Checkpoint mô hình sau khi train
-│   └── xlmroberta_finetuned/   # Trọng số M1 sau khi fine-tune (~1.1 GB)
+├── models/                     # Thư mục lưu checkpoint mô hình
+│   └── xlmroberta_finetuned/   # Trọng số mô hình chính M1 sau khi fine-tune (~1.1 GB)
 │
-├── src/                        # Mã nguồn chính (Python Package)
+├── src/                        # Mã nguồn chính của dự án (Python Package)
 │   ├── __init__.py
 │   │
-│   ├── data/                   # Code xử lý & phân tích EDA dữ liệu
+│   ├── data/                   # Tiền xử lý & Phân tích EDA dữ liệu
 │   │   ├── __init__.py
-│   │   ├── preprocess.py       # Tiền xử lý & khôi phục lỗi căn chỉnh đáp án
-│   │   └── eda.py              # Phân tích phân phối và cấu trúc dữ liệu
+│   │   ├── preprocess.py       # Tiền xử lý dữ liệu (Unicode NFC, sửa casing, tách từ)
+│   │   └── eda.py              # Phân tích phân phối và cấu trúc tập dữ liệu
 │   │
 │   ├── models/                 # Huấn luyện và đánh giá mô hình
 │   │   ├── __init__.py
-│   │   ├── baseline_bm25.py    # Baseline B1: BM25-Only rule-based
-│   │   ├── baseline_pretrained.py # Baseline B2: XLM-RoBERTa pretrained (SQuAD2)
-│   │   ├── train.py            # Huấn luyện mô hình chính M1
-│   │   ├── evaluate.py         # Đối chiếu và so sánh tổng hợp kết quả
-│   │   └── error_analysis.py   # Thống kê phân tích lỗi chi tiết -> CSV
+│   │   ├── baseline_bm25.py    # Baseline B1: BM25-Only câu chứa từ khóa
+│   │   ├── baseline_pretrained.py # Baseline B2 & Reader M1: Trích xuất span
+│   │   ├── train.py            # Huấn luyện mô hình chính M1 (XLM-RoBERTa)
+│   │   ├── pipeline_retriever_reader.py # Đánh giá hệ thống kết hợp BM25 + Reader
+│   │   ├── evaluate.py         # Tổng hợp, so sánh kết quả và xuất markdown table
+│   │   └── error_analysis.py   # Thống kê phân tích lỗi chi tiết xuất ra CSV
 │   │
-│   └── utils/                  # Thư mục tiện ích dùng chung
-│       ├── __init__.py
-│       └── metrics.py          # Đo lường F1, EM và chuẩn hóa đáp án
+│   ├── utils/                  # Thư mục tiện ích dùng chung
+│   │   ├── __init__.py
+│   │   └── metrics.py          # Đo lường F1, EM và chuẩn hóa đáp án tiếng Việt
+│   │
+│   └── web/                    # Giao diện demo Web tương tác (Flask)
+│       ├── static/             # CSS, JS, các assets tĩnh
+│       ├── templates/          # HTML templates (index.html)
+│       └── web_demo.py         # Backend server Flask
 │
-├── demo.py                     # CLI Demo tương tác gốc
-├── requirements.txt            # Quản lý dependencies thư viện
-├── error_analysis.csv          # Bảng phân tích lỗi tổng hợp xuất ra
-└── README.md                   # Hướng dẫn chi tiết dự án (Tệp này)
+├── requirements.txt            # Danh sách các thư viện phụ thuộc
+└── README.md                   # Hướng dẫn dự án (Tệp này)
 ```
 
 ---
 
-## ⚙️ 4. Quy trình tiền xử lý dữ liệu [CLO2]
+## 4. Phân tích EDA dữ liệu
 
-Tập dữ liệu gốc tiếng Việt gặp một số lỗi nghiêm trọng về căn chỉnh chỉ số đáp án và bảng mã ký tự. Quy trình xử lý tại [preprocess.py](file:///c:/Users/Kien/BTLNLP/src/data/preprocess.py) bao gồm:
-1. **Chuẩn hóa Unicode**: Đưa toàn bộ văn bản về dạng **NFC** để tránh lỗi so khớp chuỗi do ký tự tổ hợp (ví dụ: `hòa` vs `hoà`).
-2. **Khôi phục lệch Casing**: Sửa các lỗi không khớp viết hoa/viết thường giữa câu trả lời đích và ngữ cảnh (khôi phục thành công ~15% mẫu bị lỗi gán nhãn lệch trong tập dữ liệu gốc).
-3. **Căn chỉnh Token**: Sử dụng `underthesea` để tách từ tiếng Việt chuẩn xác cho mô hình từ khóa (BM25), và `offset_mapping` của tokenizer để ánh xạ chính xác vị trí ký tự sang token ID trong XLM-RoBERTa.
+Trước khi tiến hành tiền xử lý, dự án thực hiện **Phân tích Khám phá Dữ liệu (EDA)** qua script [eda.py](file:///c:/Users/Kien/BTLNLP/src/data/eda.py) nhằm hiểu rõ cấu trúc và chất lượng dữ liệu thô:
+
+- **Thống kê phân phối**: Kích thước từng split (train/validation/test), độ dài trung bình của context, câu hỏi và đáp án.
+- **Quét vấn đề chất lượng**: Phát hiện mẫu null, câu hỏi trùng lặp, và tổng số đáp án không tìm thấy trong ngữ cảnh.
+- **Phân tích chi tiết lỗi gán nhãn**: Phân loại nguyên nhân đáp án không khớp ngữ cảnh thành 4 nhóm:
+  1. Lệch chữ hoa/thường (Case Mismatch)
+  2. Khoảng trắng thừa (Whitespace Mismatch)
+  3. Lệch chuẩn hóa Unicode NFC vs NFD
+  4. Lỗi dịch máy / Paraphrase (không khắc phục được)
+- **Trực quan hóa mẫu lỗi**: Highlight cụ thể vị trí lỗi trong ngữ cảnh để xác nhận trực quan từng loại.
+
+Kết quả EDA là cơ sở trực tiếp xác định các bước xử lý cần thiết ở phần tiếp theo.
 
 ---
 
-## 🚀 5. Hướng dẫn cài đặt & Vận hành
+## 5. Quy trình tiền xử lý dữ liệu
+
+Dựa trên insight từ EDA, tập dữ liệu gốc được làm sạch qua [preprocess.py](file:///c:/Users/Kien/BTLNLP/src/data/preprocess.py) với các bước:
+1. **Chuẩn hóa Unicode (NFC)**: Đưa toàn bộ ký tự về dạng NFC để tránh lỗi không khớp chuỗi do sự khác biệt giữa ký tự tổ hợp và dựng sẵn (ví dụ: `hòa` vs `hoà`).
+2. **Khôi phục lệch Casing**: Sửa các lỗi viết hoa/viết thường giữa nhãn câu trả lời gốc và ngữ cảnh, khôi phục thành công khoảng **15%** số mẫu lỗi gán nhãn trong tập dữ liệu gốc.
+3. **Phân đoạn & Ánh xạ Token**: Sử dụng thư viện `underthesea` để tách từ tiếng Việt chuẩn cho mô hình từ khóa (BM25), đồng thời cấu hình `offset_mapping` của tokenizer để ánh xạ chính xác vị trí ký tự sang token ID tương ứng trong XLM-RoBERTa.
+
+---
+
+## 6. Hướng dẫn cài đặt & Vận hành
 
 ### Thiết lập môi trường ảo
 ```bash
 # Tạo môi trường ảo
 python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # Linux/Mac
 
-# Nâng cấp pip và cài đặt thư viện
+# Kích hoạt môi trường ảo
+.venv\Scripts\activate          # Trên Windows (PowerShell/CMD)
+# source .venv/bin/activate     # Trên Linux/Mac
+
+# Nâng cấp pip và cài đặt các thư viện phụ thuộc
 pip install -r requirements.txt
 ```
 
-### Chạy tuần tự các bước
+### Quy trình chạy thực nghiệm tuần tự
+
+#### Bước 1: Phân tích EDA dữ liệu
 ```bash
-# Bước 1: Tiền xử lý & làm sạch dữ liệu
-python src/data/preprocess.py
-
-# Bước 2: Phân tích EDA dữ liệu
 python src/data/eda.py
+```
+*Phân tích phân phối, phát hiện lỗi gán nhãn và xác định chiến lược xử lý dữ liệu.*
 
-# Bước 3: Chạy huấn luyện mô hình chính M1 (chạy trên GPU nếu có)
+#### Bước 2: Tiền xử lý và làm sạch dữ liệu
+```bash
+python src/data/preprocess.py
+```
+*Dữ liệu sạch sau khi tiền xử lý sẽ được lưu tự động tại thư mục `data/processed/`.*
+
+#### Bước 3: Huấn luyện mô hình XLM-RoBERTa (M1)
+*(Nên thực hiện trên môi trường có GPU để tối ưu hóa thời gian huấn luyện)*
+```bash
 python src/models/train.py \
     --mode train_eval \
     --max_train_samples -1 \
-    --num_epochs 2 \
+    --num_epochs 3 \
     --batch_size 16 \
     --learning_rate 2e-5 \
     --output_dir models/xlmroberta_finetuned
+```
 
-# Bước 4: Đánh giá mô hình tại các mốc mẫu khác nhau (500 mẫu hoặc 5000 mẫu)
-# Hệ thống sẽ tự động thêm hậu tố số lượng mẫu vào file kết quả để tránh ghi đè (ví dụ: _500samples_results.json)
+#### Bước 4: Đánh giá mô hình (So sánh mốc 500 và mốc 5000 mẫu)
+Hệ thống hỗ trợ chạy đánh giá với số lượng mẫu tùy chọn qua tham số `--num_samples`:
+*   **Mốc 500 mẫu**: Tốc độ đánh giá nhanh, phù hợp kiểm thử nhanh trên CPU tại máy cá nhân.
+*   **Mốc 5000 mẫu**: Đánh giá trên tập mẫu lớn hơn để số liệu có độ tin cậy và tính đại diện cao (nên chạy trên GPU).
 
-# Mốc 500 mẫu (Thực nghiệm nhanh):
-python src/models/baseline_bm25.py --num_samples 500
-python src/models/baseline_pretrained.py --num_samples 500
+##### Mốc 1: Chạy đánh giá 500 mẫu (Kiểm thử nhanh)
+```bash
+# Đánh giá Baseline B2 (XLM-R Pretrained)
+python src/models/baseline_pretrained.py --model deepset/xlm-roberta-base-squad2 --num_samples 500
+
+# Đánh giá Mô hình Fine-tuned M1 (Tinh chỉnh)
+python src/models/baseline_pretrained.py --model models/xlmroberta_finetuned --num_samples 500
+
+# Đánh giá hệ thống Pipeline (Retriever + Reader)
 python src/models/pipeline_retriever_reader.py --num_samples 500
-python src/models/evaluate.py --num_samples 500 --from_results
 
-# Mốc 5000 mẫu (Kiểm chứng quy mô lớn):
-python src/models/baseline_bm25.py --num_samples 5000
-python src/models/baseline_pretrained.py --num_samples 5000
-python src/models/pipeline_retriever_reader.py --num_samples 5000 --batch_size 32
-python src/models/evaluate.py --num_samples 5000 --from_results
+# Tổng hợp bảng so sánh kết quả mốc 500
+python src/models/evaluate.py --num_samples 500 --from_results --m1_json data/processed/test_clean_pretrained_models_xlmroberta_finetuned_500samples_results.json
 
-# Bước 5: Chạy xuất tệp phân tích lỗi CSV định lượng cho mốc 500 mẫu
+# Vẽ biểu đồ kết quả mốc 500 (lưu tại results/figures_500/)
+python src/models/visualize_results.py --num_samples 500 --out_dir results/figures_500
+```
+
+##### Mốc 2: Chạy đánh giá 5000 mẫu (Kiểm thử quy mô lớn)
+```bash
+# Đánh giá Baseline B2 (XLM-R Pretrained)
+python src/models/baseline_pretrained.py --model deepset/xlm-roberta-base-squad2 --num_samples 5000
+
+# Đánh giá Mô hình Fine-tuned M1 (Tinh chỉnh)
+python src/models/baseline_pretrained.py --model models/xlmroberta_finetuned --num_samples 5000
+
+# Đánh giá hệ thống Pipeline (Retriever + Reader)
+python src/models/pipeline_retriever_reader.py --num_samples 5000
+
+# Tổng hợp bảng so sánh kết quả mốc 5000
+python src/models/evaluate.py --num_samples 5000 --from_results --m1_json data/processed/test_clean_pretrained_models_xlmroberta_finetuned_5000samples_results.json
+
+# Vẽ biểu đồ kết quả mốc 5000 (lưu tại results/figures_5000/)
+python src/models/visualize_results.py --num_samples 5000 --out_dir results/figures_5000
+```
+
+#### Bước 5: Phân tích lỗi định lượng (CSV)
+Xuất tệp phân tích lỗi định lượng dạng CSV từ kết quả dự đoán của M1:
+```bash
+# Phân tích lỗi cho mốc 500 mẫu
 python src/models/error_analysis.py \
-    --m1_results data/processed/test_clean_finetuned_500samples_results.json \
+    --m1_results data/processed/test_clean_pretrained_models_xlmroberta_finetuned_500samples_results.json \
     --output_csv error_analysis_500.csv
 
-# Bước 6: Khởi động Flask Web Demo (chạy trên http://127.0.0.1:5000)
+# Phân tích lỗi cho mốc 5000 mẫu
+python src/models/error_analysis.py \
+    --m1_results data/processed/test_clean_pretrained_models_xlmroberta_finetuned_5000samples_results.json \
+    --output_csv error_analysis_5000.csv
+```
+
+#### Bước 6: Khởi động Web Demo trực quan
+Khởi động máy chủ Flask tại local phục vụ giao diện hỏi đáp trực tuyến:
+```bash
 python src/web/web_demo.py
 ```
+*Sau khi khởi động, truy cập ứng dụng thông qua trình duyệt tại địa chỉ: [http://127.0.0.1:5000](http://127.0.0.1:5000).*
 
 ---
 
-## 📊 6. Kết quả thực nghiệm [CLO3]
+## 7. Kết quả thực nghiệm
 
-Các mô hình được đánh giá nghiêm ngặt trên **500 mẫu** ngẫu nhiên từ tập kiểm thử sạch (`test_clean.json`) để đảm bảo tính nhất quán:
+### 1. Đánh giá trên mốc 500 mẫu kiểm thử (Mốc so sánh nhất quán)
+Dưới đây là bảng so sánh hiệu năng của các phương pháp trên **500 mẫu** đầu tiên trích xuất từ tập dữ liệu sạch `test_clean.json`:
 
-| Mô hình | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
+| Mô hình / Phương pháp | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
 | :--- | :---: | :---: | :---: | :--- |
-| **B1: BM25-Only (Rule-based)** | 0.80 | 24.31 | Khớp từ khóa | Trả về cả câu chứa từ khóa nhiều nhất (chưa trích xuất span). |
-| **B2: XLM-RoBERTa Pretrained** | 44.60 | 70.39 | Trích xuất (SQuAD2) | Model mặc định chưa thích nghi sâu ngữ cảnh Việt hóa (Reader-only). |
-| **M1: XLM-RoBERTa Fine-tuned** | **47.60** | **70.52** | **Trích xuất tối ưu** | **Huấn luyện trực tiếp trên tập dữ liệu tiếng Việt sạch (Reader-only).** |
-| **BM25 + XLM-R Pretrained (Pipeline)** | **58.00** | **81.68** | **Kênh kết hợp** | **Hệ thống kết hợp (BM25 Retriever + Pretrained Reader - test 50 mẫu).** |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **64.00** | **79.16** | **Kênh kết hợp** | **Hệ thống kết hợp đề xuất (BM25 Retriever + M1 Reader - test 50 mẫu).** |
-| *[MR] Qwen2.5-Instruct* | *80.00* | *95.00* | *Sinh văn bản* | *Thử nghiệm so sánh mở rộng trên 5 mẫu (độ trễ cao hơn).* |
+| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất (Deepset) | Mô hình cơ sở chưa qua huấn luyện thích nghi trên ViSpanExtractQA. |
+| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **60.60** | **81.05** | **Trích xuất tối ưu** | **Mô hình đề xuất chính, tinh chỉnh trên dữ liệu tiếng Việt sạch.** |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 38.20 | 62.17 | Retriever + Reader | Tích hợp Top-3 đoạn văn bản (Retriever Acc: 93.40%). |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | Retriever + M1 Reader | Tích hợp Top-3 đoạn văn bản kết hợp Rank Penalty (Hình phạt thứ tự). |
 
-* **Exact Match (EM)**: Tỷ lệ phần trăm câu trả lời dự đoán trùng khớp hoàn toàn từng ký tự với nhãn gốc (sau khi chuẩn hóa).
-* **Token F1**: Điểm F1 đo mức độ trùng khớp cấp độ từ giữa nhãn dự đoán và nhãn gốc.
+> [!NOTE]
+> * **Exact Match (EM)**: Tỷ lệ phần trăm câu trả lời dự đoán trùng khớp hoàn toàn từng ký tự với nhãn gốc (sau khi chuẩn hóa).
+> * **Token F1**: Đo mức độ trùng khớp mức độ từ (token-level) giữa câu trả lời dự đoán và nhãn gốc.
+
+### 2. Hiệu năng của mô hình chính M1 trên toàn bộ dữ liệu kiểm thử
+Khi được kiểm chứng trên **toàn bộ 10,275 mẫu** của tập dữ liệu kiểm thử (`test_clean.json`), mô hình **M1: XLM-RoBERTa Fine-tuned** đạt kết quả vượt trội và ổn định:
+* **Exact Match (EM)**: **59.53%**
+* **Token F1**: **76.31%**
 
 ---
 
-## 🔍 7. Phân tích lỗi định lượng [CLO3]
+## 8. Phân tích lỗi định lượng
 
-Dựa trên kết quả chạy tệp phân tích lỗi tổng hợp [error_analysis.csv](file:///c:/Users/Kien/BTLNLP/error_analysis.csv), các lỗi chính của mô hình M1 được thống kê định lượng như sau:
+Dựa trên kết quả phân tích lỗi của mô hình M1 trên tập 500 mẫu kiểm thử, các loại lỗi được phân bổ cụ thể như sau:
 
 ```
-  Lỗi biên (span dư)                         45.0%
-  Sai span hoàn toàn (gold có trong context) 41.7%
-  Gold không có trong context (lỗi dữ liệu)  11.7%
-  Lỗi biên (span thiếu)                       1.7%
+  Lỗi biên (span dư thừa chức danh/mô tả)    45.0%
+  Sai span hoàn toàn (đáp án có trong ngữ cảnh) 41.7%
+  Độ lệch ngữ cảnh (đáp án không có trong ngữ cảnh) 11.7%
+  Lỗi biên (trích xuất thiếu ký tự/từ)         1.7%
 ```
 
 ### Các ví dụ lỗi tiêu biểu:
-1. **Lỗi biên (span dư) - 45%**: 
-   * *Câu hỏi*: "Ai là chủ tịch tập đoàn Viettel?"
-   * *Đúng*: `Lê Đăng Dũng`
-   * *Dự đoán*: `Thiếu tướng Lê Đăng Dũng` (Dư thừa chức danh).
-2. **Sai span hoàn toàn - 41.7%**:
-   * Xảy ra khi văn bản ngữ cảnh quá dài, chứa nhiều thực thể cùng loại (ví dụ: nhiều tên người hoặc mốc thời gian khác nhau) làm phân tán phân phối xác suất của mô hình.
+1. **Lỗi biên (dư thừa từ ngữ cảnh) - 45%**: 
+   * *Câu hỏi*: "Ai là bộ trưởng bộ quốc phòng Việt Nam?"
+   * *Nhãn gốc*: `Ngô Xuân Lịch`
+   * *Mô hình dự đoán*: `Đại tướng Ngô Xuân Lịch` (Dư thừa chức danh quân hàm).
+2. **Sai lệch span hoàn toàn - 41.7%**:
+   * Thường xuất hiện trong các đoạn văn dài chứa nhiều thực thể có cùng kiểu (ví dụ: đoạn văn có nhiều tên người hoặc nhiều mốc thời gian khác nhau) dẫn đến mô hình bị phân tán xác suất trích xuất.
 
 ### Hướng cải thiện đề xuất:
-* Áp dụng luật hậu xử lý (Post-processing) để tự động cắt tỉa các danh xưng/chức danh tiếng Việt thông dụng (`ông`, `bà`, `Thiếu tướng`, `Tổng giám đốc`...).
-* Tăng kích thước ngữ cảnh tối đa (`max_length` lên 384/512) và huấn luyện với số lượng epoch lớn hơn trên hạ tầng GPU.
+* **Hậu xử lý (Post-processing)**: Xây dựng bộ lọc loại bỏ các chức danh, danh xưng tiếng Việt thông dụng (`ông`, `bà`, `Đại tướng`, `Giám đốc`...) khỏi câu trả lời được trích xuất.
+* **Mở rộng Context Length**: Tăng độ dài chuỗi tối đa (`max_length`) lên 384 hoặc 512 token trong quá trình huấn luyện và inference để giữ đầy đủ ngữ cảnh của các đoạn văn dài.
 
----
 
-## 🧠 8. Tự học & Phát triển công nghệ [CLO4]
-
-Trong quá trình phát triển dự án, nhóm đã tự nghiên cứu và tích hợp các công nghệ mới:
-* **Hugging Face Tokenizer (Offset Mapping)**: Nghiên cứu kỹ thuật chuyển đổi chỉ số ký tự (character index) sang chỉ số token (token index) để gắn nhãn nhị phân cho bài toán trích xuất câu trả lời.
-* **Qwen2.5-0.5B-Instruct & Chat Template**: Ứng dụng mô hình ngôn ngữ lớn (LLM) dưới dạng generative reader bằng cách thiết lập prompt hướng dẫn có cấu trúc nhằm so sánh đối chiếu hiệu năng giữa phương pháp sinh văn bản và trích xuất truyền thống.
-* **Flask Web Server**: Tự học lập trình web backend để cung cấp giao diện trực quan hiển thị song song kết quả của 4 mô hình khác nhau.
-
----
-
-## 👥 9. Phân công công việc trong nhóm
-
-| Thành viên | Nhiệm vụ chính | Mức độ đóng góp |
-| :--- | :--- | :---: |
-| **Thành viên 1** | Khảo sát bài toán, làm sạch dữ liệu, xử lý mã hóa Unicode NFC. | 20% |
-| **Thành viên 2** | Xây dựng baseline BM25 và kiểm thử so sánh cơ bản. | 20% |
-| **Thành viên 3** | Thiết kế pipeline huấn luyện XLM-RoBERTa, tinh chỉnh siêu tham số trên GPU. | 20% |
-| **Thành viên 4** | Phát triển tệp phân tích lỗi tự động, trích xuất dữ liệu ra CSV. | 20% |
-| **Thành viên 5** | Xây dựng giao diện Web Flask, soạn thảo tài liệu README và Slide thuyết trình. | 20% |
