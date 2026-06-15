@@ -190,7 +190,9 @@ python src/models/visualize_results.py --num_samples 5000 --out_dir results/figu
 ```
 
 #### Bước 5: Phân tích lỗi định lượng (CSV)
-Xuất tệp phân tích lỗi định lượng dạng CSV từ kết quả dự đoán của M1:
+Hệ thống hỗ trợ chạy phân tích lỗi cho cả mô hình độc lập (Standalone Reader) và hệ thống tìm kiếm tích hợp (Retriever-Reader Pipeline):
+
+##### Chế độ đọc hiểu độc lập (Standalone Reader):
 ```bash
 # Phân tích lỗi cho mốc 500 mẫu
 python src/models/error_analysis.py \
@@ -201,6 +203,19 @@ python src/models/error_analysis.py \
 python src/models/error_analysis.py \
     --m1_results data/processed/test_clean_pretrained_models_xlmroberta_finetuned_5000samples_results.json \
     --output_csv error_analysis_5000.csv
+```
+
+##### Chế độ tìm kiếm tích hợp (Retriever-Reader Pipeline):
+```bash
+# Phân tích lỗi cho mốc 500 mẫu ở chế độ tìm kiếm
+python src/models/error_analysis.py \
+    --b2_results data/processed/test_clean_pipeline_500samples_results.json \
+    --output_csv error_analysis_pipeline_500.csv
+
+# Phân tích lỗi cho mốc 5000 mẫu ở chế độ tìm kiếm
+python src/models/error_analysis.py \
+    --b2_results data/processed/test_clean_pipeline_5000samples_results.json \
+    --output_csv error_analysis_pipeline_5000.csv
 ```
 
 #### Bước 6: Khởi động Web Demo trực quan
