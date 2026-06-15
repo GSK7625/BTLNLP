@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 : currentContext;
             renderHighlight(contextToRender, activeTabModel);
             
-            // Render Top-3 retrieved contexts list
+            // Render Top-5 retrieved contexts list
             if (currentMode === 'pipeline') {
                 retrievedContextsSection.style.display = 'block';
                 currentRetrievedContexts = data.retrieved_contexts || [];
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Render list of top-3 retrieved contexts
+    // Render list of top-5 retrieved contexts
     function renderRetrievedContextsList(contexts, activeModel) {
         retrievedContextsList.innerHTML = '';
         if (!contexts || contexts.length === 0) return;

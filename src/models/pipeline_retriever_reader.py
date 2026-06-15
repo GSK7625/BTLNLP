@@ -22,7 +22,7 @@ if getattr(sys.stderr, 'encoding', '').lower() != 'utf-8':
 
 from src.utils.metrics import normalize_answer, compute_exact, compute_f1
 
-def evaluate_pipeline(data_path: str, model_name: str, num_samples: int = None, batch_size: int = 16, top_k: int = 3, rank_penalty: float = None):
+def evaluate_pipeline(data_path: str, model_name: str, num_samples: int = None, batch_size: int = 16, top_k: int = 5, rank_penalty: float = None):
     """
     Chạy đánh giá pipeline tích hợp với cải tiến Top-K Retrieval:
       1. BM25 truy hồi Top-K đoạn văn liên quan nhất.
@@ -69,6 +69,10 @@ def evaluate_pipeline(data_path: str, model_name: str, num_samples: int = None, 
     retriever_correct = 0
     rr_scores = []
     
+    # Khởi tạo đếm chính xác thực tế cho các mốc K
+    k_targets = [1, 3, 5]
+    retriever_correct_k = {k: 0 for k in k_targets}
+    
     for item in tqdm(data, desc="BM25 Retrieval"):
         q_tokens = item['question_bm25'].split()
         gold_ctx = item['context_raw']
@@ -86,12 +90,24 @@ def evaluate_pipeline(data_path: str, model_name: str, num_samples: int = None, 
             retriever_correct += 1
             rank = top_k_ctxs.index(gold_ctx) + 1
             rr_scores.append(1.0 / rank)
+            
+            # Thống kê thực tế cho từng mốc K
+            for k in k_targets:
+                if rank <= k:
+                    retriever_correct_k[k] += 1
         else:
             rr_scores.append(0.0)
             
     retriever_acc = retriever_correct / total * 100
     retriever_mrr = sum(rr_scores) / total * 100
+    
+    # Tính phần trăm chính xác cho từng mốc
+    retriever_accs_k = {k: (retriever_correct_k[k] / total * 100) for k in k_targets}
+    
     print(f"-> Độ chính xác của Retriever (Top-{top_k} Accuracy): {retriever_acc:.2f}% ({retriever_correct}/{total})")
+    for k in k_targets:
+        if k <= top_k:
+            print(f"   - Top-{k} Accuracy (Thực tế): {retriever_accs_k[k]:.2f}% ({retriever_correct_k[k]}/{total})")
     print(f"-> Mean Reciprocal Rank (MRR@{top_k}): {retriever_mrr:.2f}%")
 
     # ── 3. CHẠY BỘ ĐỌC (TRANSFORMER READER TRÊN TOP-K) ─────────── #
@@ -219,6 +235,7 @@ def evaluate_pipeline(data_path: str, model_name: str, num_samples: int = None, 
         'exact_match': round(avg_em, 4),
         'token_f1': round(avg_f1, 4),
         'retriever_accuracy': round(retriever_acc, 4),
+        'retriever_accuracy_k': {str(k): round(v, 4) for k, v in retriever_accs_k.items()},
         'retriever_mrr': round(retriever_mrr, 4),
         'error_analysis': error_cases
     }
@@ -229,7 +246,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_pretrained', type=str, default='deepset/xlm-roberta-base-squad2')
     parser.add_argument('--model_finetuned', type=str, default='models/xlmroberta_finetuned')
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--top_k', type=int, default=3, help='Số lượng đoạn văn truy hồi tối đa')
+    parser.add_argument('--top_k', type=int, default=5, help='Số lượng đoạn văn truy hồi tối đa')
     parser.add_argument('--num_samples', type=int, default=None, help='Số lượng mẫu test để chạy')
     parser.add_argument('--rank_penalty', type=float, default=0.5, help='Hình phạt tin cậy theo thứ tự rank BM25 để giảm overconfidence của model fine-tuned')
     args = parser.parse_args()

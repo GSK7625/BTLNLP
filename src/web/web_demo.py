@@ -495,10 +495,10 @@ def predict_pipeline():
     q_bm25 = preprocess_for_retriever(question)
     q_tokens = q_bm25.split()
     
-    # Truy hồi top-3 contexts
+    # Truy hồi top-5 contexts
     scores = GLOBAL_BM25.get_scores(q_tokens)
-    top_3_indices = np.argsort(scores)[-3:][::-1]
-    retrieved_contexts = [GLOBAL_CORPUS_RAW[idx] for idx in top_3_indices]
+    top_5_indices = np.argsort(scores)[-5:][::-1]
+    retrieved_contexts = [GLOBAL_CORPUS_RAW[idx] for idx in top_5_indices]
     
     retrieval_latency = (time.time() - t0) * 1000
     
@@ -513,7 +513,7 @@ def predict_pipeline():
             elif model_key in ('pretrained', 'finetuned'):
                 reader = get_model_reader(model_key)
                 
-                # Chạy Reader trên cả 3 đoạn văn, tìm kết quả có score cao nhất
+                # Chạy Reader trên cả 5 đoạn văn, tìm kết quả có score cao nhất
                 best_score = -1.0
                 best_res = None
                 best_context = retrieved_contexts[0]
@@ -562,7 +562,7 @@ def predict_pipeline():
             
     return jsonify({
         'retrieved_context': retrieved_contexts[0], # Default Top-1 context
-        'retrieved_contexts': retrieved_contexts,   # List of all top-3 contexts
+        'retrieved_contexts': retrieved_contexts,   # List of all top-5 contexts
         'retrieval_latency_ms': round(retrieval_latency, 1),
         'results': results
     })

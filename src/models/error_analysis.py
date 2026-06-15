@@ -92,7 +92,7 @@ def load_result_file(path: str) -> dict:
 #  Main analysis
 # ------------------------------------------------─────────── #
 
-def run_analysis(test_data_path: str, b1_results_path: str,
+def run_analysis(test_data_path: str,
                  b2_results_path: str, m1_results_path: str = None,
                  output_csv: str = 'error_analysis.csv',
                  num_examples: int = 15):
@@ -105,14 +105,21 @@ def run_analysis(test_data_path: str, b1_results_path: str,
     print("\n  [1] BẢNG KẾT QUẢ TỔNG QUAN")
     print("─"*60)
 
+    # Load test clean data for full context lookup (to avoid issues with truncated contexts)
+    full_contexts = {}
+    if test_data_path and os.path.exists(test_data_path):
+        try:
+            with open(test_data_path, encoding='utf-8') as f:
+                test_data = json.load(f)
+                full_contexts = {item['id']: item['context_raw'] for item in test_data if 'id' in item}
+        except Exception as e:
+            print(f"  [WARN] Không thể đọc {test_data_path}: {e}")
+
     models_info = []
 
-    b1 = load_result_file(b1_results_path)
     b2 = load_result_file(b2_results_path)
     m1 = load_result_file(m1_results_path) if m1_results_path else None
 
-    if b1:
-        models_info.append({'name': 'B1: BM25-Only (Rule-based)', **b1})
     if b2:
         models_info.append({'name': 'B2: XLM-RoBERTa Pretrained (SQuAD2)', **b2})
     if m1:
@@ -145,7 +152,12 @@ def run_analysis(test_data_path: str, b1_results_path: str,
             gold    = err.get('gold', '')
             pred    = err.get('predicted', '')
             question = err.get('question', '')
-            context  = err.get('context', '')
+            
+            # Use original full context to avoid false "Gold not in context" errors due to truncation
+            err_id = err.get('id')
+            context = full_contexts.get(err_id) if err_id in full_contexts else err.get('context', '')
+            if not context:
+                context = err.get('context', '')
 
             analysis = classify_error_detailed(gold, pred, question, context)
 
@@ -196,20 +208,17 @@ def run_analysis(test_data_path: str, b1_results_path: str,
     print("""
   Từ bảng kết quả, có thể rút ra các nhận xét sau:
 
-  1. B1 (BM25-Only) đạt EM rất thấp (0.28%) vì nó trả về cả câu
-     thay vì span ngắn — minh chứng rõ cho sự cần thiết của Reader.
-
-  2. B2 (XLM-RoBERTa pretrained SQuAD2) đạt F1 ~70% — cho thấy model
+  1. B2 (XLM-RoBERTa pretrained SQuAD2) đạt F1 ~70% — cho thấy model
      đã học được cấu trúc QA từ tiếng Anh, nhưng gặp khó khăn về biên
      span trong tiếng Việt (lỗi prefix như "Thiếu tướng X" → "X").
 
-  3. M1 (Fine-tuned) dự kiến cải thiện rõ so với B2 nhờ học trực tiếp
+  2. M1 (Fine-tuned) dự kiến cải thiện rõ so với B2 nhờ học trực tiếp
      trên dữ liệu tiếng Việt, đặc biệt giảm lỗi biên span.
 
-  4. Loại lỗi phổ biến nhất: "Lỗi biên (span dư)" — model trích xuất
+  3. Loại lỗi phổ biến nhất: "Lỗi biên (span dư)" — model trích xuất
      dư prefix/suffix tiếng Việt như danh hiệu, chức vụ.
 
-  5. Hướng cải thiện: (a) Fine-tune với nhiều dữ liệu hơn, (b) Post-
+  4. Hướng cải thiện: (a) Fine-tune với nhiều dữ liệu hơn, (b) Post-
      processing để loại bỏ prefix thông thường (Thiếu tướng, ông, bà...),
      (c) Dùng BM25 retrieval thực sự khi có corpus nhiều đoạn văn.
   """)
@@ -218,8 +227,6 @@ def run_analysis(test_data_path: str, b1_results_path: str,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Phân tích lỗi tổng hợp')
     parser.add_argument('--test_data', default='data/processed/test_clean.json')
-    parser.add_argument('--b1_results',
-                        default='data/processed/test_clean_bm25only_results.json')
     parser.add_argument('--b2_results',
                         default='data/processed/test_clean_pretrained_deepset_xlm-roberta-base-squad2_results.json')
     parser.add_argument('--m1_results', default=None,
@@ -229,7 +236,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     m1_res_path = args.m1_results
-    b1_res_path = args.b1_results
     b2_res_path = args.b2_results
 
     # Tự động phát hiện kết quả M1 nếu chưa chỉ định
@@ -242,15 +248,10 @@ if __name__ == '__main__':
             m1_res_path = matching_files[0]
             print(f"  [INFO] Tự động chọn kết quả M1: {m1_res_path}")
 
-    # Ánh xạ b1_results và b2_results tương ứng với hậu tố số lượng mẫu của m1_results
+    # Ánh xạ b2_results tương ứng với hậu tố số lượng mẫu của m1_results
     if m1_res_path and os.path.exists(m1_res_path):
         for suffix in ["_500samples", "_5000samples"]:
             if suffix in m1_res_path:
-                if b1_res_path == 'data/processed/test_clean_bm25only_results.json':
-                    alt_b1 = args.test_data.replace('.json', f'_bm25only{suffix}_results.json')
-                    if os.path.exists(alt_b1):
-                        b1_res_path = alt_b1
-                        print(f"  [INFO] Tự động chọn kết quả B1: {b1_res_path}")
                 if b2_res_path == 'data/processed/test_clean_pretrained_deepset_xlm-roberta-base-squad2_results.json':
                     alt_b2 = args.test_data.replace('.json', f'_pretrained_deepset_xlm-roberta-base-squad2{suffix}_results.json')
                     if os.path.exists(alt_b2):
@@ -260,7 +261,6 @@ if __name__ == '__main__':
 
     run_analysis(
         test_data_path=args.test_data,
-        b1_results_path=b1_res_path,
         b2_results_path=b2_res_path,
         m1_results_path=m1_res_path,
         output_csv=args.output_csv,

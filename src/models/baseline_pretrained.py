@@ -50,8 +50,10 @@ def classify_error(gold: str, pred: str, context: str) -> str:
 # ------------------------------------------------------------------ #
 
 def evaluate(data_path: str, model_name: str, batch_size: int, num_samples: int = None):
+    is_finetuned = "finetuned" in model_name.lower() or "fine-tuned" in model_name.lower()
+    model_title = "M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)" if is_finetuned else "B2: XLM-RoBERTa Pretrained (không fine-tune)"
     print(f"\n{'='*60}")
-    print(f"BASELINE B2: XLM-RoBERTa Pretrained (không fine-tune)")
+    print(f"ĐÁNH GIÁ MÔ HÌNH: {model_title}")
     print(f"{'='*60}")
     print(f"Model     : {model_name}")
     print(f"Dữ liệu   : {data_path}")
@@ -167,7 +169,7 @@ def evaluate(data_path: str, model_name: str, batch_size: int, num_samples: int 
     avg_f1 = sum(f1_scores) / total * 100
 
     print(f"\n{'─'*40}")
-    print(f"  KẾT QUẢ BASELINE B2 (XLM-RoBERTa pretrained):")
+    print(f"  KẾT QUẢ ĐÁNH GIÁ ({model_title}):")
     print(f"{'─'*40}")
     print(f"  Model        : {model_name}")
     print(f"  Số mẫu       : {total:,}")

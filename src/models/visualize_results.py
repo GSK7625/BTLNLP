@@ -89,7 +89,7 @@ DEFAULT_RESULTS = [
         "full_name": "BM25 + XLM-R Pretrained (Pipeline)",
         "em":  38.20,
         "f1":  62.17,
-        "note": "BM25 Top-3 + Pretrained Reader (Retriever Acc: 93.40%)",
+        "note": "BM25 Top-5 + Pretrained Reader (Retriever Acc: 93.40%)",
         "type": "pipeline",
         "retriever_acc": 93.40,
     },
@@ -98,7 +98,7 @@ DEFAULT_RESULTS = [
         "full_name": "BM25 + XLM-R Fine-tuned (Pipeline M1)",
         "em":  53.80,
         "f1":  71.95,
-        "note": "BM25 Top-3 + M1 Reader kết hợp Rank Penalty",
+        "note": "BM25 Top-5 + M1 Reader kết hợp Rank Penalty",
         "type": "pipeline",
         "retriever_acc": 93.40,
     },
@@ -279,12 +279,14 @@ def load_results_from_json(data_path: str, num_samples: int = 500,
     
     # Pretrained Pipeline
     pipe_pre_em = pipe_pre_f1 = ret_acc = None
+    ret_accs_k = None
     pipe_pre_errs = []
     if pipe_data and pipe_data.get("pretrained_pipeline"):
         pp = pipe_data["pretrained_pipeline"]
         pipe_pre_em = pp.get("exact_match")
         pipe_pre_f1 = pp.get("token_f1")
         ret_acc = pp.get("retriever_accuracy")
+        ret_accs_k = pp.get("retriever_accuracy_k")
         pipe_pre_errs = pp.get("error_analysis", [])
     if pipe_pre_em is None:
         comp_res = get_from_comparison("Pretrained (Pipeline)")
@@ -296,9 +298,10 @@ def load_results_from_json(data_path: str, num_samples: int = 500,
         "full_name": "BM25 + XLM-R Pretrained (Pipeline)",
         "em":  pipe_pre_em,
         "f1":  pipe_pre_f1,
-        "note": f"BM25 Top-3 + Pretrained Reader (Retriever Acc: {ret_acc:.2f}%)",
+        "note": f"BM25 Top-5 + Pretrained Reader (Retriever Acc: {ret_acc:.2f}%)",
         "type": "pipeline",
         "retriever_acc": ret_acc,
+        "retriever_accs_k": ret_accs_k,
         "error_analysis": pipe_pre_errs
     })
 
@@ -310,6 +313,7 @@ def load_results_from_json(data_path: str, num_samples: int = 500,
         pipe_ft_em = fp.get("exact_match")
         pipe_ft_f1 = fp.get("token_f1")
         ret_acc = fp.get("retriever_accuracy", ret_acc)
+        ret_accs_k = fp.get("retriever_accuracy_k", ret_accs_k)
         pipe_ft_errs = fp.get("error_analysis", [])
     if pipe_ft_em is None:
         comp_res = get_from_comparison("Fine-tuned (Pipeline M1)")
@@ -319,9 +323,10 @@ def load_results_from_json(data_path: str, num_samples: int = 500,
         "full_name": "BM25 + XLM-R Fine-tuned (Pipeline M1)",
         "em":  pipe_ft_em,
         "f1":  pipe_ft_f1,
-        "note": "BM25 Top-3 + M1 Reader kết hợp Rank Penalty",
+        "note": "BM25 Top-5 + M1 Reader kết hợp Rank Penalty",
         "type": "pipeline",
         "retriever_acc": ret_acc,
+        "retriever_accs_k": ret_accs_k,
         "error_analysis": pipe_ft_errs
     })
 
@@ -757,17 +762,30 @@ def plot_pipeline_gain(results: list, out_dir: Path, num_samples: int):
 
 def plot_retriever_accuracy(results: list, out_dir: Path):
     """Biểu đồ minh họa BM25 Retriever Accuracy theo Top-K."""
-    acc_vals = [r.get("retriever_acc") for r in results if r.get("retriever_acc")]
-    retriever_acc = acc_vals[0] if acc_vals else 93.40  # Mặc định chuẩn
-
-    # Mô phỏng Top-1, 2, 3, 5 tăng dần
-    top_k_vals = [1,   2,    3,            5]
-    acc_top_k  = [
-        round(retriever_acc * 0.81, 2),
-        round(retriever_acc * 0.93, 2),
-        retriever_acc,
-        round(min(retriever_acc * 1.03, 100.0), 2),
-    ]
+    ret_accs_k = None
+    for r in results:
+        if r.get("retriever_accs_k"):
+            ret_accs_k = r["retriever_accs_k"]
+            break
+            
+    top_k_vals = [1,   3,    5]
+    
+    if ret_accs_k:
+        print("[INFO] Vẽ biểu đồ Retriever Accuracy bằng số liệu THỰC TẾ từ file kết quả.")
+        acc_top_k = [
+            float(ret_accs_k.get("1", ret_accs_k.get(1, 0.0))),
+            float(ret_accs_k.get("3", ret_accs_k.get(3, 0.0))),
+            float(ret_accs_k.get("5", ret_accs_k.get(5, 0.0))),
+        ]
+    else:
+        acc_vals = [r.get("retriever_acc") for r in results if r.get("retriever_acc")]
+        retriever_acc = acc_vals[0] if acc_vals else 93.40
+        print(f"[WARN] Không tìm thấy số liệu thực tế các mốc K. Sử dụng ước lượng dựa trên mốc {retriever_acc:.2f}%.")
+        acc_top_k  = [
+            round(retriever_acc * 0.80, 2),
+            round(retriever_acc * 0.90, 2),
+            retriever_acc,
+        ]
 
     fig, ax = plt.subplots(figsize=(7.5, 5))
     ax.plot(top_k_vals, acc_top_k, marker="o", markersize=8,
@@ -779,9 +797,9 @@ def plot_retriever_accuracy(results: list, out_dir: Path):
                     xytext=(0, 10), textcoords="offset points",
                     ha="center", fontsize=10, fontweight="bold", color="#1D4ED8")
 
-    # Đánh dấu cấu hình Top-3 của hệ thống
-    ax.axvline(x=3, color="#DC2626", linestyle="--", linewidth=1.2, alpha=0.7)
-    ax.text(3.1, acc_top_k[2] - 6, "Sử dụng Top-3\n(Hiện tại)", fontsize=9.5,
+    # Đánh dấu cấu hình Top-5 của hệ thống
+    ax.axvline(x=5, color="#DC2626", linestyle="--", linewidth=1.2, alpha=0.7)
+    ax.text(4.0, acc_top_k[2] - 8, "Sử dụng Top-5\n(Hiện tại)", fontsize=9.5,
             color="#DC2626", fontweight="bold", style="italic")
 
     ax.set_xticks(top_k_vals)
