@@ -158,7 +158,7 @@ Bảng dưới đây trình bày kết quả đo lường EM, Token F1 và tốc
 ### 5.5. Thảo luận và Phân tích kết quả thực nghiệm
 
 **1. Fine-tuning cải thiện mạnh EM nhờ tối ưu hóa biên span**
-Khi so sánh **B2 (Pretrained)** và **M1 (Fine-tuned)**: EM tăng từ 44.40% → 56.50% (+12.1%), F1 tăng từ 66.60% → 76.10% (+9.5%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn — học cách loại bỏ danh xưng thừa ("Thiếu tướng", "Ông") trước tên riêng — thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
+Khi so sánh **B2 (Pretrained)** và **M1 (Fine-tuned)**: EM tăng từ 44.3% → 56.5% (+12.2%), F1 tăng từ 66.5% → 76.1% (+9.6%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn — học cách loại bỏ danh xưng thừa ("Thiếu tướng", "Ông") trước tên riêng — thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
 
 **2. Pipeline thấp hơn Reader đơn lẻ — Hiện tượng Rank Penalty và lỗi Retriever**
 ![Pipeline Gain](file:///d:/Learning/NLP/BTLNLP/results/figures_5000/fig6_pipeline_gain.png)
@@ -191,7 +191,7 @@ Trong số 5000 câu hỏi thử nghiệm, Pipeline M1 đạt EM=42.4%, tương 
 * **Lỗi do Retriever (Retriever Fault): ~31.3%** (900/2878 mẫu) — Bộ lọc BM25 thất bại hoàn toàn trong việc nạp ngữ cảnh chứa đáp án vào Top-3. Đối với các trường hợp này, Reader không thể dự đoán đúng vì đầu vào đã sai.
 * **Lỗi do Reader (Reader Fault): ~68.7%** (1978/2878 mẫu) — BM25 đã đưa đúng đoạn văn vào Top-3 nhưng Reader vẫn chọn sai thực thể hoặc sai biên.
 
-*Định hướng cải thiện:* So với mức lỗi Retriever khá nhỏ (~10-14%) ở tập 500 mẫu, trên tập 5000 mẫu tỷ trọng lỗi do BM25 đã tăng vọt lên tới 31.3%. Điều này cho thấy giới hạn rõ ràng của thuật toán khớp từ khóa BM25 trước kho dữ liệu lớn. Việc mô hình đạt F1=76.10% trên Oracle cho thấy năng lực Reader đã khá tốt, nhưng toàn hệ thống cần nâng cấp lên Dense Retrieval để khắc phục "nút thắt cổ chai" từ Retriever.
+*Định hướng cải thiện:* So với mức lỗi Retriever khá nhỏ (~10-14%) ở tập 500 mẫu, trên tập 5000 mẫu tỷ trọng lỗi do BM25 đã tăng vọt lên tới 31.3%. Điều này cho thấy giới hạn rõ ràng của thuật toán khớp từ khóa BM25 trước kho dữ liệu lớn. Việc mô hình đạt F1=76.1% trên Oracle cho thấy năng lực Reader đã khá tốt, nhưng toàn hệ thống cần nâng cấp lên Dense Retrieval để khắc phục "nút thắt cổ chai" từ Retriever.
 
 ### 6.3. Bảng phân tích lỗi định tính (Qualitative Error Analysis)
 Theo yêu cầu đánh giá, nhóm chọn **7 trường hợp lỗi tiêu biểu** đại diện cho các nhóm lỗi khác nhau để phân tích chi tiết.

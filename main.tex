@@ -336,7 +336,7 @@ Bài toán Extractive QA sử dụng 2 chỉ số chuẩn học thuật theo chu
 \subsection{Thảo luận và Phân tích kết quả thực nghiệm}
 
 \subsubsection{Vai trò của Fine-tuning trong tối ưu hóa đường biên (Boundary Prediction)}
-Khi so sánh \textbf{B2 (Pretrained)} và \textbf{M1 (Fine-tuned)}: EM tăng từ 44.40\% lên 56.50\% (+12.1\%), F1 tăng từ 66.60\% lên 76.10\% (+9.5\%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn --- học cách loại bỏ danh xưng thừa (``Thiếu tướng'', ``Ông'') trước tên riêng --- thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
+Khi so sánh \textbf{B2 (Pretrained)} và \textbf{M1 (Fine-tuned)}: EM tăng từ 44.3\% lên 56.5\% (+12.2\%), F1 tăng từ 66.5\% lên 76.1\% (+9.6\%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn --- học cách loại bỏ danh xưng thừa (``Thiếu tướng'', ``Ông'') trước tên riêng --- thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
 
 \subsubsection{Pipeline thấp hơn Reader đơn lẻ --- Hiện tượng Rank Penalty}
 \begin{figure}[H]
