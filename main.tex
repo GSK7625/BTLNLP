@@ -265,6 +265,7 @@ Bài toán Extractive QA sử dụng 2 chỉ số chuẩn học thuật theo chu
   \centering
   \small
   \caption{Kết quả đo lường hiệu năng và tốc độ xử lý của các mô hình (5000 mẫu test)}
+  \resizebox{\textwidth}{!}{
   \begin{tabular}{lcccl}
     \toprule
     \textbf{Mô hình} & \textbf{EM} & \textbf{Token F1} & \textbf{Độ trễ (Inference/mẫu)} & \textbf{Vai trò hệ thống} \\
@@ -275,6 +276,7 @@ Bài toán Extractive QA sử dụng 2 chỉ số chuẩn học thuật theo chu
     \textbf{Pipeline: BM25 + M1} & 36.20\% & 48.40\% & $\sim$115 ms & BM25 Top-5 + M1 + Rank Penalty. \\
     \bottomrule
   \end{tabular}
+  }
   \label{tab:ketqua}
 \end{table}
 
