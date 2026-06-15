@@ -137,7 +137,6 @@ Bảng dưới đây trình bày kết quả đo lường EM, Token F1 và tốc
 | Ngưỡng K | Hit@K (Recall@K) | Nhận xét |
 | :---: | :---: | :--- |
 | K = 1 | 70.4% | Chỉ dùng kết quả tốt nhất — độ chính xác thấp |
-| K = 2 | 76.3% | Cải thiện đáng kể khi xét thêm 1 ứng cử viên |
 | **K = 3** | **82.0%** | **Điểm nhóm đang dùng — cân bằng tốt giữa coverage và chi phí** |
 | K = 5 | 85.3% | Tăng nhẹ nhưng đưa thêm context dài vào Reader, rủi ro truncation |
 
