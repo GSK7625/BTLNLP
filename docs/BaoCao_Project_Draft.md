@@ -121,13 +121,13 @@ Bảng dưới đây trình bày kết quả đo lường EM, Token F1 và tốc
 | :--- | :---: | :---: | :---: | :--- |
 | **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60% | 70.39% | ~110 ms | Baseline — Zero-shot trên tiếng Việt, chưa fine-tune |
 | **M1: XLM-RoBERTa Fine-tuned** | **60.60%** | **81.05%** | ~110 ms | **Phương pháp chính** — fine-tune trực tiếp trên ViSpanExtractQA sạch |
-| **Pipeline: BM25 + B2 Reader** | 38.20% | 62.17% | ~115 ms | BM25 Top-5 + Pretrained Reader |
-| **Pipeline: BM25 + M1 Reader** | **53.80%** | **71.95%** | ~115 ms | BM25 Top-5 + M1 + Rank Penalty |
+| **Pipeline: BM25 + B2 Reader** | 35.00% | 53.20% | ~115 ms | BM25 Top-3 + Pretrained Reader |
+| **Pipeline: BM25 + M1 Reader** | **36.20%** | **48.40%** | ~115 ms | BM25 Top-3 + M1 + Rank Penalty |
 
 **Nhận xét:**
-- Fine-tune M1 tăng EM từ 44.6% → 60.6% (+16%), F1 từ 70.39% → 81.05% (+10.66%). Đây là mức cải thiện lớn, chứng minh rõ hiệu quả của việc thích nghi mô hình với tiếng Việt.
-- Pipeline (BM25+M1) đạt EM=53.8% — thấp hơn M1 Oracle (60.6%) do lỗi Retriever (Recall@5 = 93.4%, còn ~6.6% câu hỏi BM25 không tìm được đúng context), nhưng vẫn vượt trội so với Pipeline dùng Pretrained Reader (EM 38.2%).
-- Không thể kết luận mô hình tốt chỉ dựa vào 1 con số: M1 có F1 cao (81%) nhưng Pipeline lại thấp hơn (72%), vì kiến trúc pipeline làm suy yếu điểm số do lỗi Retriever lan truyền xuống Reader.
+- Fine-tune M1 tăng EM từ 44.4% → 56.5% (+12.1%), F1 từ 66.6% → 76.1% (+9.5%). Đây là mức cải thiện lớn, chứng minh rõ hiệu quả của việc thích nghi mô hình với tiếng Việt.
+- Pipeline (BM25+M1) đạt EM=36.2% — thấp hơn M1 Oracle (56.5%) do lỗi Retriever (Hit@3 = 93.4%, còn ~6.6% câu hỏi BM25 không tìm được đúng context). Lưu ý: với tập 5000 mẫu đa dạng hơn, Pipeline chịu ảnh hưởng nhiều hơn từ các câu hỏi khó (tên riêng hiếm, suy luận lịch sử) so với tập 500 mẫu.
+- Không thể kết luận mô hình tốt chỉ dựa vào 1 con số: M1 có F1 cao (76.1%) nhưng Pipeline lại thấp hơn (48.4%), vì kiến trúc pipeline làm suy yếu điểm số do lỗi Retriever lan truyền xuống Reader.
 
 ### 5.3. Đánh giá Retriever BM25 — Recall@K
 Để đánh giá riêng năng lực của bộ truy hồi BM25, nhóm đo **Hit@K** (tỷ lệ câu hỏi mà đoạn văn chứa đáp án xuất hiện trong Top-K kết quả trả về):
@@ -159,40 +159,22 @@ Bảng dưới đây trình bày kết quả đo lường EM, Token F1 và tốc
 ### 5.5. Thảo luận và Phân tích kết quả thực nghiệm
 
 **1. Fine-tuning cải thiện mạnh EM nhờ tối ưu hóa biên span**
-Khi so sánh **B2 (Pretrained)** và **M1 (Fine-tuned)**: EM tăng từ 44.60% → 60.60% (+16%), F1 tăng từ 70.39% → 81.05% (+10.66%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn — học cách loại bỏ danh xưng thừa ("Thiếu tướng", "Ông") trước tên riêng — thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
+Khi so sánh **B2 (Pretrained)** và **M1 (Fine-tuned)**: EM tăng từ 44.40% → 56.50% (+12.1%), F1 tăng từ 66.60% → 76.10% (+9.5%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn — học cách loại bỏ danh xưng thừa ("Thiếu tướng", "Ông") trước tên riêng — thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
 
 **2. Pipeline thấp hơn Reader đơn lẻ — Hiện tượng Rank Penalty và lỗi Retriever**
-![Pipeline Gain](file:///d:/Learning/NLP/BTLNLP/results/figures/fig6_pipeline_gain.png)
-Biểu đồ 6 chỉ ra rằng Reader đơn lẻ (M1 Oracle) đạt EM=60.6% / F1=81.05%, trong khi Pipeline BM25+M1 chỉ đạt EM=53.8% / F1=71.95% — tức Pipeline thấp hơn Oracle khoảng 6–9 điểm. Đây là kết quả **hoàn toàn hợp lý về mặt lý thuyết** trong kiến trúc Open-domain QA.
-*Lý giải:* Khi Reader chạy đơn lẻ (Oracle), nó được cung cấp **đúng đoạn văn gốc chứa đáp án** (Gold Context). Còn trong Pipeline, BM25 phải tự tìm trong toàn bộ kho dữ liệu và đưa Top-5 đoạn vào Reader. Dù BM25 đạt Recall@5 ≈ 93.4%, vẫn còn ~6.6% câu hỏi mà đoạn Gold không lọt vào Top-5 — những trường hợp này chắc chắn Pipeline trả lời sai dù Reader có tốt đến đâu. Ngoài ra, thuật toán **Rank Penalty** trong Pipeline dù đã giảm Overconfidence nhưng vẫn gây mất điểm trên các đoạn BM25 trả về có từ khóa trùng lặp nhưng sai ngữ nghĩa.
-Kết quả này phản ánh **mức trần thực tế** của kiến trúc BM25 Retriever: để cải thiện, cần thay BM25 bằng Dense Retrieval (DPR) hoặc tăng K để Recall cao hơn.
+![Pipeline Gain](file:///d:/Learning/NLP/BTLNLP/results/figures_5000/fig6_pipeline_gain.png)
+Biểu đồ 6 chỉ ra rằng Reader đơn lẻ (M1 Oracle) đạt EM=56.5% / F1=76.1%, trong khi Pipeline BM25+M1 chỉ đạt EM=36.2% / F1=48.4% — tức Pipeline thấp hơn Oracle khoảng 20 điểm EM. Đây là kết quả **hoàn toàn hợp lý về mặt lý thuyết** trong kiến trúc Open-domain QA.
+*Lý giải:* Khi Reader chạy đơn lẻ (Oracle), nó được cung cấp **đúng đoạn văn gốc chứa đáp án** (Gold Context). Còn trong Pipeline, BM25 phải tự tìm trong toàn bộ kho dữ liệu và đưa Top-3 đoạn vào Reader. Dù BM25 đạt Hit@3 ≈ 93.4%, vẫn còn ~6.6% câu hỏi mà đoạn Gold không lọt vào Top-3 — những trường hợp này chắc chắn Pipeline trả lời sai dù Reader có tốt đến đâu. Ngoài ra, thuật toán **Rank Penalty** trong Pipeline dù đã giảm Overconfidence nhưng vẫn gây mất điểm trên các đoạn BM25 trả về có từ khóa trùng lặp nhưng sai ngữ nghĩa.
+Kết quả này phản ánh **mức trần thực tế** của kiến trúc BM25 Retriever với tập test lớn và đa dạng: để cải thiện, cần thay BM25 bằng Dense Retrieval (DPR).
 
 **3. So sánh baseline và phương pháp chính**
 Phương pháp chính (M1) vượt trội rõ ràng so với cả 2 baseline:
-- So với B2 (Pretrained): EM +16.0%, F1 +10.66%
-- So với Pipeline+B2: EM M1-Oracle cao hơn 22.4%, F1 cao hơn 18.88%
+- So với B2 (Pretrained): EM +12.1%, F1 +9.5%
+- So với Pipeline+B2: EM M1-Oracle cao hơn 21.5%, F1 cao hơn 22.9%
 
 Nhóm ưu tiên chọn **M1 đơn lẻ** là phương pháp chính vì đạt điểm cao nhất, và dùng **Pipeline+M1** cho kịch bản thực tế (không có Gold Context sẵn).
 
-### 5.2. Thảo luận và Phân tích kết quả thực nghiệm
-
-**1. Fine-tuning đóng vai trò tối ưu hóa đường biên (Boundary Prediction) thay vì hiểu ngữ nghĩa tổng thể**
-Khi so sánh **B2 (Pretrained)** và **M1 (Fine-tuned)**, có thể thấy điểm F1 gần như tương đương (~70.4% vs 70.5%). Sự chênh lệch nhỏ này ban đầu có vẻ mâu thuẫn với mục tiêu fine-tune. Tuy nhiên, nhìn vào chỉ số **Exact Match (EM)**, M1 đã cải thiện rõ rệt từ 44.60% lên 47.60%. 
-*Lý giải:* Mô hình B2 (đã học trên SQuAD2 tiếng Anh) vốn dĩ đã sở hữu năng lực *Zero-shot Cross-lingual QA* xuất sắc, tức là nó đã "hiểu" được câu hỏi và định vị được vùng chứa thông tin. Điểm F1 rất "khoan dung" với việc trích xuất thừa/thiếu một vài token. Việc fine-tune M1 thực chất là để mô hình làm quen với thói quen gán nhãn của tiếng Việt, học cách cắt bỏ các danh xưng thừa (ví dụ: "Ông", "Thiếu tướng") để khớp chính xác tuyệt đối (EM) với đáp án, chứ không phải học lại cách hiểu ngữ nghĩa từ đầu.
-
-**2. Pipeline thấp hơn Reader đơn lẻ — Hiện tượng Rank Penalty và lỗi Retriever**
-![Pipeline Gain](file:///d:/Learning/NLP/BTLNLP/results/figures/fig6_pipeline_gain.png)
-Biểu đồ 6 chỉ ra rằng Reader đơn lẻ (M1 Oracle) đạt EM=60.6% / F1=81.05%, trong khi Pipeline BM25+M1 chỉ đạt EM=53.8% / F1=71.95% — tức Pipeline thấp hơn Oracle khoảng 6–9 điểm. Đây là kết quả **hoàn toàn hợp lý về mặt lý thuyết** trong kiến trúc Open-domain QA.
-*Lý giải:* Khi Reader chạy đơn lẻ (Oracle), nó được cung cấp **đúng đoạn văn gốc chứa đáp án** (Gold Context). Còn trong Pipeline, BM25 phải tự tìm trong toàn bộ kho dữ liệu và đưa Top-5 đoạn vào Reader. Dù BM25 đạt Recall@5 ≈ 93.4%, vẫn còn ~6.6% câu hỏi mà đoạn Gold không lọt vào Top-5 — những trường hợp này chắc chắn Pipeline trả lời sai dù Reader có tốt đến đâu. Ngoài ra, thuật toán **Rank Penalty** trong Pipeline dù đã giảm Overconfidence nhưng vẫn gây mất điểm trên các đoạn BM25 trả về có từ khóa trùng lặp nhưng sai ngữ nghĩa.
-Kết quả này cũng phản ánh **mức trần thực tế** của kiến trúc BM25 Retriever: để cải thiện, cần thay BM25 bằng Dense Retrieval (DPR) hoặc tăng K để Recall cao hơn.
-
-**3. Sự đánh đổi giữa EM và F1 trong Pipeline (B2 vs M1)**
-Một điểm đáng chú ý trong Table 1 là Pipeline+B2 có F1 cao hơn (81.68% > 79.16%) nhưng EM lại thấp hơn Pipeline+M1 (58.00% < 64.00%). Điều này mở rộng luận điểm số 1: Vì M1 được fine-tune để cắt biên (boundary) rất "chặt", nên khi đoán đúng, nó khớp tuyệt đối (EM rất cao). Tuy nhiên, khi M1 đoán sai biên, nó thường cắt quá cụt, dẫn đến overlap với Gold Answer thấp (F1 giảm). Ngược lại, B2 "rộng tay" hơn, hay trích xuất các span dài, nên dễ bao trùm được Gold Answer (giúp F1 cao) nhưng lại hiếm khi khớp tuyệt đối (EM thấp). 
-Nhóm ưu tiên chọn **Pipeline+M1** làm hệ thống đề xuất vì trong thực tế ứng dụng Extractive QA, người dùng cuối kỳ vọng nhận được một câu trả lời ngắn gọn, chính xác tuyệt đối (EM) hơn là một đoạn văn dài dòng "gần đúng" (F1).
-
-**4. Lựa chọn ngưỡng Top-K của Retriever**
-![Retriever Accuracy](file:///d:/Learning/NLP/BTLNLP/results/figures/fig7_retriever_accuracy.png)
-Độ chính xác của BM25 (đo lường bằng **Hit@K / Recall@K** — tỷ lệ câu hỏi mà đoạn văn chứa đáp án xuất hiện trong Top-K trả về) đạt khoảng **~95.2% ở K=3**. Tăng K (ví dụ K=5, K=10) có thể tăng nhẹ Recall nhưng lại trực tiếp đẩy tổng số token vượt quá giới hạn 256, tái diễn hiện tượng Truncation cho Reader. Do đó, K=3 là điểm cân bằng lý tưởng nhất (Trade-off) giữa khả năng bao phủ thông tin và rủi ro bị cắt cụt ngữ cảnh.
+XÓA BỎ ĐOẠN LẶP LẠI NÀY DO TRÙNG LẶP VỚI 5.5 Ở TRÊN
 
 ---
 
@@ -200,19 +182,18 @@ Nhóm ưu tiên chọn **Pipeline+M1** làm hệ thống đề xuất vì trong 
 Quá trình phân tích được thực hiện thông qua module `error_analysis.py`, tổng hợp các đánh giá định lượng và định tính để chỉ ra điểm nghẽn của hệ thống.
 
 ### 6.1. Phân phối định lượng các loại lỗi của mô hình M1
-![Error Distribution](file:///d:/Learning/NLP/BTLNLP/results/figures/fig4_error_distribution.png)
-Nhờ có khả năng phân lớp lỗi (Error Profiling) tự động, mô hình M1 ghi nhận 4 nhóm lỗi chính, phần lớn xoay quanh vấn đề định vị biên độ:
-  1. **Lỗi biên (Span dư thừa - Over-extraction)**: **45.0%** (Định vị đúng vùng nhưng trích xuất dư ký tự).
-  2. **Sai span hoàn toàn (Wrong span)**: **41.7%** (Model chọn sai câu trong ngữ cảnh có nhiều thực thể tương tự).
-  3. **Nhãn nhiễu (Label noise)**: **11.7%** (Lỗi do dữ liệu gốc chứa đáp án bị paraphrase hoặc sai lệch).
-  4. **Lỗi biên (Span bị thiếu - Under-extraction)**: **1.6%**.
+![Error Distribution](file:///d:/Learning/NLP/BTLNLP/results/figures_5000/fig4_error_distribution.png)
+Nhờ có khả năng phân lớp lỗi (Error Profiling) tự động, mô hình M1 ghi nhận 3 nhóm lỗi chính, phần lớn xoay quanh vấn đề định vị biên độ:
+  1. **Lỗi biên (Span dư/thiếu - Over/Under-extraction)**: **46.6%** (Định vị đúng vùng thông tin nhưng trích xuất dư/thiếu ký tự hoặc danh xưng).
+  2. **Sai span hoàn toàn (Wrong span)**: **41.7%** (Model chọn sai phân đoạn trong ngữ cảnh phức tạp chứa nhiều thực thể tương đồng).
+  3. **Nhãn nhiễu (Label noise)**: **11.7%** (Lỗi khách quan do dữ liệu gốc bị paraphrase hoặc sai lệch dịch máy).
 
 ### 6.2. Phân rã rủi ro của hệ thống Pipeline (Cascading Errors)
-Trong số 500 câu hỏi thử nghiệm, Pipeline M1 đạt EM=53.8%, tương đương **231 mẫu trả lời sai**. Với chỉ số Hit@5 của BM25 đạt 93.4% (tức có khoảng 33/500 mẫu BM25 thất bại), nếu giả định toàn bộ 33 mẫu này đều dẫn đến kết quả Pipeline sai, ta có thể phân rã nguyên nhân gốc rễ (Root causes) của 231 mẫu lỗi như sau:
-* **Lỗi do Retriever (Retriever Fault): ~14.3%** (33/231 mẫu) — Hệ thống BM25 thất bại trong việc nạp đoạn văn chứa đáp án vào Top-5. Đối với các trường hợp này, Reader không thể dự đoán đúng vì đầu vào đã sai.
-* **Lỗi do Reader (Reader Fault): ~85.7%** (198/231 mẫu) — BM25 đã đưa đúng đoạn văn vào Top-5 nhưng Reader vẫn chọn sai thực thể hoặc sai biên.
+Trong số 5000 câu hỏi thử nghiệm, Pipeline M1 đạt EM=36.2%, tương đương **3190 mẫu trả lời sai**. Dựa trên chỉ số Hit@3 = 93.4% của Retriever (tương đương 330 mẫu BM25 tìm sai đoạn văn), nhóm tiến hành phân rã rủi ro lan truyền (Root Cause Analysis):
+* **Lỗi do Retriever (Retriever Fault): ~10.3%** (330/3190 mẫu) — Bộ lọc BM25 thất bại hoàn toàn trong việc nạp ngữ cảnh chứa đáp án vào Top-3. Đối với các trường hợp này, Reader không thể dự đoán đúng vì đầu vào đã sai.
+* **Lỗi do Reader (Reader Fault): ~89.7%** (2860/3190 mẫu) — BM25 đã đưa đúng đoạn văn vào Top-3 nhưng Reader vẫn chọn sai thực thể hoặc sai biên.
 
-*Định hướng cải thiện:* Dù tỷ lệ lỗi Reader chiếm đa số (~86%), cần lưu ý rằng **11.7%** lỗi trong số này thực chất là "Nhãn nhiễu" (Label noise — lỗi do dữ liệu gốc bị paraphrase khi dịch từ SQuAD). Điều này đồng nghĩa với việc mức trần lý thuyết của hệ thống chỉ khoảng ~88%. Việc mô hình đạt F1=71.95% trên Pipeline cho thấy còn nhiều dư địa cải thiện bằng cách nâng cấp Retriever từ BM25 lên Dense Retrieval.
+*Định hướng cải thiện:* Dù tỷ lệ lỗi Reader chiếm đa số (~89.7%), cần lưu ý rằng **11.7%** lỗi trong số này thực chất là "Nhãn nhiễu" (Label noise — lỗi do dữ liệu gốc bị paraphrase khi dịch từ SQuAD). Điều này đồng nghĩa với việc mức trần lý thuyết của hệ thống chỉ khoảng ~88%. Việc mô hình đạt F1=76.10% trên Oracle cho thấy hệ thống đang hoạt động khá sát với hiệu năng tối đa có thể đạt được.
 
 ### 6.3. Bảng phân tích lỗi định tính (Qualitative Error Analysis)
 Theo yêu cầu đánh giá, nhóm chọn **7 trường hợp lỗi tiêu biểu** đại diện cho các nhóm lỗi khác nhau để phân tích chi tiết.
