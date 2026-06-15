@@ -71,14 +71,15 @@ def main():
     # Add title and labels
     ax.set_title("Phân phối Độ dài Token của các Trường Dữ liệu (Tập Train)", fontsize=13, fontweight="bold", pad=15)
     ax.set_xlabel("Độ dài văn bản (Số lượng Token) →", fontsize=10, fontweight="semibold", labelpad=10)
-    ax.set_ylabel("Số mẫu (Mật độ chuẩn hóa) ↑", fontsize=10, fontweight="semibold", labelpad=10)
+    ax.set_ylabel("Tỉ lệ mẫu mẫu (Mật độ chuẩn hóa) ↑", fontsize=10, fontweight="semibold", labelpad=10)
     
-    # Hide the default y ticks because it is normalized
-    ax.set_yticks([])
+    # Add numerical labels/ticks on y-axis (representing percentage of maximum density)
+    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_yticklabels(["0%", "20%", "40%", "60%", "80%", "100%"])
     
     # Stylize grid and spines
     ax.grid(True, linestyle="--", linewidth=0.5, color="#E2E8F0", alpha=0.6)
-    sns.despine(left=False, bottom=False)  # standard Seaborn spine removal
+    sns.despine(ax=ax, left=False, bottom=False)  # standard Seaborn spine removal
     
     # Customize spine colors
     ax.spines["left"].set_color("#CBD5E1")

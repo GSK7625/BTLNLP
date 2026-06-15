@@ -95,10 +95,11 @@ def plot_token_distributions(ctx_len, q_len, a_len):
     
     ax.set_title("Phân phối Độ dài Token của các Trường Dữ liệu (Tập Train)", fontsize=13, fontweight="bold", pad=15)
     ax.set_xlabel("Độ dài văn bản (Số lượng Token) →", fontsize=10, fontweight="semibold", labelpad=10)
-    ax.set_ylabel("Số mẫu (Mật độ chuẩn hóa) ↑", fontsize=10, fontweight="semibold", labelpad=10)
+    ax.set_ylabel("Tỉ lệ mẫu (Mật độ chuẩn hóa) ↑", fontsize=10, fontweight="semibold", labelpad=10)
     
-    # Ẩn các vạch trên trục tung do đã chuẩn hóa
-    ax.set_yticks([])
+    # Hiển thị vạch tỷ lệ phần trăm tương đối trên trục tung
+    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_yticklabels(["0%", "20%", "40%", "60%", "80%", "100%"])
     
     # Thiết lập lưới và đường bao bằng despine của Seaborn
     ax.grid(True, linestyle="--", linewidth=0.5, color="#E2E8F0", alpha=0.6)

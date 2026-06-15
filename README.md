@@ -274,15 +274,6 @@ Dựa trên kết quả phân tích lỗi của mô hình M1, các loại lỗi 
 
 *   **Lỗi biên (Span dư thừa/thiếu)**: **84.8%** (Mô hình chọn đúng vùng chứa đáp án nhưng trích xuất dư hoặc thiếu các từ ở biên như chức danh, danh xưng).
 *   **Sai span hoàn toàn (đáp án có trong ngữ cảnh)**: **15.2%** (Model chọn sai vùng dữ liệu do ngữ cảnh dài hoặc nhiều thực thể gây nhiễu).
-*   **Nhãn nhiễu / Lỗi dữ liệu**: **0.0%** (Do tập dữ liệu kiểm thử `test_clean.json` đã được lọc sạch các nhiễu dịch máy ở bước tiền xử lý).
-
-### Các ví dụ lỗi tiêu biểu:
-1. **Lỗi biên (dư thừa từ ngữ cảnh) - 45%**: 
-   * *Câu hỏi*: "Ai là bộ trưởng bộ quốc phòng Việt Nam?"
-   * *Nhãn gốc*: `Ngô Xuân Lịch`
-   * *Mô hình dự đoán*: `Đại tướng Ngô Xuân Lịch` (Dư thừa chức danh quân hàm).
-2. **Sai lệch span hoàn toàn - 41.7%**:
-   * Thường xuất hiện trong các đoạn văn dài chứa nhiều thực thể có cùng kiểu (ví dụ: đoạn văn có nhiều tên người hoặc nhiều mốc thời gian khác nhau) dẫn đến mô hình bị phân tán xác suất trích xuất.
 
 ### Hướng cải thiện đề xuất:
 * **Hậu xử lý (Post-processing)**: Xây dựng bộ lọc loại bỏ các chức danh, danh xưng tiếng Việt thông dụng (`ông`, `bà`, `Đại tướng`, `Giám đốc`...) khỏi câu trả lời được trích xuất.
