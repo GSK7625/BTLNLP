@@ -230,7 +230,7 @@ Nhóm tiến hành cài đặt kiểm thử qua các cấu hình mô hình:
 \end{itemize}
 
 \section{THỰC NGHIỆM \& KẾT QUẢ CHI TIẾT}
-Các mô hình và pipeline được đánh giá đồng bộ trên tập kiểm thử sạch gồm \textbf{500 mẫu} ngẫu nhiên của tệp \texttt{test\_clean.json}. Mọi thử nghiệm đều cấu hình cố định \texttt{max\_seq\_length = 256} trên môi trường CPU tiêu chuẩn.
+Các mô hình và pipeline được đánh giá đồng bộ trên tập kiểm thử sạch gồm \textbf{5000 mẫu} ngẫu nhiên của tệp \texttt{test\_clean.json}. Mọi thử nghiệm đều cấu hình cố định \texttt{max\_seq\_length = 256} trên môi trường CPU tiêu chuẩn.
 
 \subsection{Chỉ số đánh giá và ý nghĩa}
 Bài toán Extractive QA sử dụng 2 chỉ số chuẩn học thuật theo chuẩn SQuAD:
@@ -256,37 +256,37 @@ Bài toán Extractive QA sử dụng 2 chỉ số chuẩn học thuật theo chu
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.85\textwidth]{results/figures_500/fig1_em_f1_comparison.png}
-  \caption{So sánh Exact Match và Token F1 giữa các mô hình (500 mẫu test)}
+  \includegraphics[width=0.85\textwidth]{results/figures_5000/fig1_em_f1_comparison.png}
+  \caption{So sánh Exact Match và Token F1 giữa các mô hình (5000 mẫu test)}
   \label{fig:emf1}
 \end{figure}
 
 \begin{table}[H]
   \centering
   \small
-  \caption{Kết quả đo lường hiệu năng và tốc độ xử lý của các mô hình (500 mẫu test)}
+  \caption{Kết quả đo lường hiệu năng và tốc độ xử lý của các mô hình (5000 mẫu test)}
   \begin{tabular}{lcccl}
     \toprule
     \textbf{Mô hình} & \textbf{EM} & \textbf{Token F1} & \textbf{Độ trễ (Inference/mẫu)} & \textbf{Vai trò hệ thống} \\
     \midrule
-    \textbf{B2: XLM-R Pretrained} & 44.60\% & 70.39\% & $\sim$110 ms & Baseline zero-shot cross-lingual. \\
-    \textbf{M1: XLM-R Fine-tuned} & \textbf{60.60\%} & \textbf{81.05\%} & $\sim$110 ms & Phương pháp chính (độc lập). \\
-    \textbf{Pipeline: BM25 + B2} & 37.80\% & 61.40\% & $\sim$115 ms & BM25 Top-5 + Pretrained Reader. \\
-    \textbf{Pipeline: BM25 + M1} & 53.80\% & 71.95\% & $\sim$115 ms & BM25 Top-5 + M1 + Rank Penalty. \\
+    \textbf{B2: XLM-R Pretrained} & 44.40\% & 66.60\% & $\sim$110 ms & Baseline zero-shot cross-lingual. \\
+    \textbf{M1: XLM-R Fine-tuned} & \textbf{56.50\%} & \textbf{76.10\%} & $\sim$110 ms & Phương pháp chính (độc lập). \\
+    \textbf{Pipeline: BM25 + B2} & 35.00\% & 53.20\% & $\sim$115 ms & BM25 Top-5 + Pretrained Reader. \\
+    \textbf{Pipeline: BM25 + M1} & 36.20\% & 48.40\% & $\sim$115 ms & BM25 Top-5 + M1 + Rank Penalty. \\
     \bottomrule
   \end{tabular}
   \label{tab:ketqua}
 \end{table}
 
-\textbf{Nhận xét:} Fine-tune M1 tăng EM từ 44.6\% lên 60.6\% (+16\%) và F1 từ 70.39\% lên 81.05\% (+10.66\%), chứng minh hiệu quả của việc thích nghi mô hình với tiếng Việt. Pipeline (BM25+M1) đạt EM=53.8\% — thấp hơn M1 Oracle (60.6\%) do lỗi Retriever (Recall@5 = 93.4\%, còn $\sim$6.6\% câu hỏi BM25 không tìm được đúng context) nhưng vẫn vượt Pipeline dùng Pretrained Reader (EM 37.8\%).
+\textbf{Nhận xét:} Fine-tune M1 tăng EM từ 44.4\% lên 56.5\% (+12.1\%) và F1 từ 66.6\% lên 76.1\% (+9.5\%), chứng minh hiệu quả của việc thích nghi mô hình với tiếng Việt. Pipeline (BM25+M1) đạt EM=36.2\% --- thấp hơn M1 Oracle (56.5\%) vì lỗi Retriever lan truyền khi tập test lớn hơn (Recall@5 $\approx$ 93.4\%, $\sim$6.6\% câu hỏi BM25 không tìm được đúng context). Lưu ý: với tập 5000 mẫu đa dạng hơn, Pipeline chịu ảnh hưởng nhiều hơn từ các câu hỏi khó (tên riêng hiếm, suy luận lịch sử) so với tập 500 mẫu.
 
 \subsection{Đánh giá Retriever BM25 --- Recall@K}
 Để đánh giá riêng năng lực bộ truy hồi BM25, nhóm đo \textbf{Hit@K} --- tỷ lệ câu hỏi mà đoạn văn chứa đáp án xuất hiện trong Top-K kết quả trả về:
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.75\textwidth]{results/figures_500/fig7_retriever_accuracy.png}
-  \caption{Đường cong BM25 Recall@K theo ngưỡng K (500 mẫu test)}
+  \includegraphics[width=0.75\textwidth]{results/figures_5000/fig7_retriever_accuracy.png}
+  \caption{Đường cong BM25 Recall@K theo ngưỡng K (5000 mẫu test)}
   \label{fig:recallk}
 \end{figure}
 
@@ -333,20 +333,20 @@ Bài toán Extractive QA sử dụng 2 chỉ số chuẩn học thuật theo chu
 \subsection{Thảo luận và Phân tích kết quả thực nghiệm}
 
 \subsubsection{Vai trò của Fine-tuning trong tối ưu hóa đường biên (Boundary Prediction)}
-Khi so sánh \textbf{B2 (Pretrained)} và \textbf{M1 (Fine-tuned)}: EM tăng từ 44.60\% lên 60.60\% (+16\%), F1 tăng từ 70.39\% lên 81.05\% (+10.66\%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn --- học cách loại bỏ danh xưng thừa (``Thiếu tướng'', ``Ông'') trước tên riêng --- thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
+Khi so sánh \textbf{B2 (Pretrained)} và \textbf{M1 (Fine-tuned)}: EM tăng từ 44.40\% lên 56.50\% (+12.1\%), F1 tăng từ 66.60\% lên 76.10\% (+9.5\%). Sự cải thiện lớn hơn ở EM cho thấy fine-tune giúp mô hình cắt biên span chính xác hơn --- học cách loại bỏ danh xưng thừa (``Thiếu tướng'', ``Ông'') trước tên riêng --- thay vì chỉ định vị vùng thông tin (đã giỏi nhờ pretrain đa ngôn ngữ).
 
 \subsubsection{Pipeline thấp hơn Reader đơn lẻ --- Hiện tượng Rank Penalty}
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.85\textwidth]{results/figures_500/fig6_pipeline_gain.png}
-  \caption{So sánh hiệu năng Reader đơn lẻ (Oracle) và Pipeline BM25+Reader}
+  \includegraphics[width=0.85\textwidth]{results/figures_5000/fig6_pipeline_gain.png}
+  \caption{So sánh hiệu năng Reader đơn lẻ (Oracle) và Pipeline BM25+Reader (5000 mẫu)}
   \label{fig:pipelinegain}
 \end{figure}
 
-Biểu đồ \ref{fig:pipelinegain} chỉ ra Reader đơn lẻ (M1 Oracle) đạt EM=60.6\% / F1=81.05\%, trong khi Pipeline BM25+M1 chỉ đạt EM=53.8\% / F1=71.95\% --- Pipeline thấp hơn Oracle khoảng 6--9 điểm. Đây là kết quả hoàn toàn hợp lý: trong Pipeline, BM25 phải tự tìm trong toàn bộ kho dữ liệu và đưa Top-5 đoạn vào Reader. Dù BM25 đạt Recall@5 $\approx$ 93.4\%, vẫn còn $\sim$6.6\% câu hỏi mà đoạn Gold không lọt vào Top-5 --- những trường hợp này chắc chắn Pipeline trả lời sai. Để cải thiện cần thay BM25 bằng Dense Retrieval (DPR).
+Biểu đồ \ref{fig:pipelinegain} chỉ ra Reader đơn lẻ (M1 Oracle) đạt EM=56.5\% / F1=76.1\%, trong khi Pipeline BM25+M1 chỉ đạt EM=36.2\% / F1=48.4\% --- Pipeline thấp hơn Oracle khoảng 20 điểm EM. Với tập test 5000 mẫu đa dạng, tỷ lệ câu hỏi khó (tên riêng hiếm, câu hỏi cần suy luận) cao hơn so với tập 500 mẫu, khiến BM25 thất bại nhiều hơn trong việc tìm đúng context. Đây là minh chứng rõ ràng nhất về giới hạn của kiến trúc BM25 Retriever với tập test lớn và đa dạng --- cần thay bằng Dense Retrieval (DPR) để cải thiện.
 
 \subsubsection{So sánh baseline và phương pháp chính}
-Phương pháp chính (M1) vượt trội rõ ràng so với cả hai baseline: so với B2 (Pretrained) tăng +16\% EM và +10.66\% F1; so với Pipeline+B2 Reader: M1-Oracle có EM cao hơn 22.8\% và F1 cao hơn 19.65\%. Nhóm ưu tiên chọn \textbf{M1 đơn lẻ} làm phương pháp chính (đạt điểm cao nhất), và dùng \textbf{Pipeline+M1} cho kịch bản thực tế (không có Gold Context sẵn).
+Phương pháp chính (M1) vượt trội rõ ràng so với cả hai baseline: so với B2 (Pretrained) tăng +12.1\% EM và +9.5\% F1; so với Pipeline+B2 Reader: M1-Oracle có EM cao hơn 21.5\% và F1 cao hơn 22.9\%. Nhóm ưu tiên chọn \textbf{M1 đơn lẻ} làm phương pháp chính (đạt điểm cao nhất), và dùng \textbf{Pipeline+M1} cho kịch bản thực tế (không có Gold Context sẵn).
 
 \subsubsection{Lựa chọn ngưỡng Top-K lý tưởng cho Retriever}
 Dựa trên Bảng \ref{tab:recallk}, $K=3$ là điểm cân bằng kỹ thuật lý tưởng nhất giữa độ bao phủ thông tin (Hit@3 = 93.4\%) và rủi ro truncation ngữ cảnh. Tăng K lên 5 chỉ cải thiện thêm 3.4\% nhưng làm tổng input token tăng gấp 1.67 lần.
@@ -357,8 +357,8 @@ Dựa trên Bảng \ref{tab:recallk}, $K=3$ là điểm cân bằng kỹ thuật
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.6\textwidth]{results/figures_500/fig4_error_distribution.png}
-  \caption{Phân phối loại lỗi của mô hình M1: XLM-R Fine-tuned (trên tập kiểm thử)}
+  \includegraphics[width=0.6\textwidth]{results/figures_5000/fig4_error_distribution.png}
+  \caption{Phân phối loại lỗi của mô hình M1: XLM-R Fine-tuned (trên tập kiểm thử 5000 mẫu)}
   \label{fig:errordist}
 \end{figure}
 
