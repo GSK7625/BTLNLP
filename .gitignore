@@ -22,7 +22,6 @@ models/xlmroberta_finetuned/*
 data/processed/*.json
 data/processed/*.csv
 error_analysis.csv
-error_analysis_500.csv
 *.zip
 
 # System files
