@@ -214,21 +214,31 @@ python src/web/web_demo.py
 
 ## 7. Kết quả thực nghiệm
 
-### 1. Đánh giá trên mốc 500 mẫu kiểm thử (Mốc so sánh nhất quán)
+### 1. Đánh giá trên mốc 500 mẫu kiểm thử (Mốc kiểm thử nhanh)
 Dưới đây là bảng so sánh hiệu năng của các phương pháp trên **500 mẫu** đầu tiên trích xuất từ tập dữ liệu sạch `test_clean.json`:
 
 | Mô hình / Phương pháp | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
 | :--- | :---: | :---: | :---: | :--- |
 | **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.60 | 70.39 | Trích xuất (Deepset) | Mô hình cơ sở chưa qua huấn luyện thích nghi trên ViSpanExtractQA. |
-| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **60.60** | **81.05** | **Trích xuất tối ưu** | **Mô hình đề xuất chính, tinh chỉnh trên dữ liệu tiếng Việt sạch.** |
-| **BM25 + XLM-R Pretrained (Pipeline)** | 38.20 | 62.17 | Retriever + Reader | Tích hợp Top-3 đoạn văn bản (Retriever Acc: 93.40%). |
-| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | Retriever + M1 Reader | Tích hợp Top-3 đoạn văn bản kết hợp Rank Penalty (Hình phạt thứ tự). |
+| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **60.60** | **81.05** | Trích xuất tối ưu | Mô hình Reader độc lập phục vụ so sánh .|
+| **BM25 + XLM-R Pretrained (Pipeline)** | 37.80 | 61.35 | Retriever + Reader | Tích hợp Top-5 đoạn văn bản (Retriever Acc: 95.00%). |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **53.80** | **71.95** | **Retriever + M1 Reader** | **Phương pháp đề xuất chính của nhóm |
+
+### 2. Đánh giá trên mốc 5000 mẫu kiểm thử (Mốc kiểm chứng quy mô lớn)
+Dưới đây là bảng so sánh hiệu năng của các phương pháp trên **5000 mẫu** trích xuất từ tập dữ liệu sạch `test_clean.json`:
+
+| Mô hình / Phương pháp | EM (%) | F1 (%) | Cơ chế xử lý | Ghi chú thực nghiệm |
+| :--- | :---: | :---: | :---: | :--- |
+| **B2: XLM-RoBERTa Pretrained (SQuAD2)** | 44.32 | 66.52 | Trích xuất (Deepset) | Mô hình cơ sở chưa qua huấn luyện thích nghi trên ViSpanExtractQA. |
+| **M1: XLM-RoBERTa Fine-tuned (ViSpanExtractQA)** | **56.52** | **76.12** | **Trích xuất tối ưu** | **Mô hình đề xuất chính, tinh chỉnh trên dữ liệu tiếng Việt sạch.** |
+| **BM25 + XLM-R Pretrained (Pipeline)** | 34.88 | 52.37 | Retriever + Reader | Tích hợp Top-5 đoạn văn bản (Retriever Acc: 85.34%). |
+| **BM25 + XLM-R Fine-tuned (Pipeline M1)** | **42.44** | **57.51** | Retriever + M1 Reader | Tích hợp Top-5 đoạn văn bản kết hợp Rank Penalty (Hình phạt thứ tự). |
 
 > [!NOTE]
 > * **Exact Match (EM)**: Tỷ lệ phần trăm câu trả lời dự đoán trùng khớp hoàn toàn từng ký tự với nhãn gốc (sau khi chuẩn hóa).
 > * **Token F1**: Đo mức độ trùng khớp mức độ từ (token-level) giữa câu trả lời dự đoán và nhãn gốc.
 
-### 2. Hiệu năng của mô hình chính M1 trên toàn bộ dữ liệu kiểm thử
+### 3. Hiệu năng của mô hình chính M1 trên toàn bộ dữ liệu kiểm thử
 Khi được kiểm chứng trên **toàn bộ 10,275 mẫu** của tập dữ liệu kiểm thử (`test_clean.json`), mô hình **M1: XLM-RoBERTa Fine-tuned** đạt kết quả vượt trội và ổn định:
 * **Exact Match (EM)**: **59.53%**
 * **Token F1**: **76.31%**
@@ -237,14 +247,11 @@ Khi được kiểm chứng trên **toàn bộ 10,275 mẫu** của tập dữ l
 
 ## 8. Phân tích lỗi định lượng
 
-Dựa trên kết quả phân tích lỗi của mô hình M1 trên tập 500 mẫu kiểm thử, các loại lỗi được phân bổ cụ thể như sau:
+Dựa trên kết quả phân tích lỗi của mô hình M1, các loại lỗi được phân bổ cụ thể như sau (số liệu thống kê chính thức):
 
-```
-  Lỗi biên (span dư thừa chức danh/mô tả)    45.0%
-  Sai span hoàn toàn (đáp án có trong ngữ cảnh) 41.7%
-  Độ lệch ngữ cảnh (đáp án không có trong ngữ cảnh) 11.7%
-  Lỗi biên (trích xuất thiếu ký tự/từ)         1.7%
-```
+*   **Lỗi biên (Span dư thừa/thiếu)**: **46.6%** (Trong đó lỗi trích xuất dư chức danh/mô tả chiếm 45.0%, trích xuất thiếu chiếm 1.6%).
+*   **Sai span hoàn toàn (đáp án có trong ngữ cảnh)**: **41.7%** (Model chọn sai vùng dữ liệu do ngữ cảnh dài hoặc nhiều thực thể gây nhiễu).
+*   **Nhãn nhiễu / Lỗi dữ liệu**: **11.7%** (Lỗi do dữ liệu gốc dịch máy bị lệch từ vựng hoặc paraphrase).
 
 ### Các ví dụ lỗi tiêu biểu:
 1. **Lỗi biên (dư thừa từ ngữ cảnh) - 45%**: 
