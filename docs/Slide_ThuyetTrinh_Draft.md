@@ -71,7 +71,7 @@
 ### Slide 6: Mô hình Baseline vs Phương pháp chính
 * **Baseline B2 (XLM-RoBERTa Pretrained)**: Dùng checkpoint lớn `deepset/xlm-roberta-base-squad2` chạy trực tiếp trên tiếng Việt (zero-shot transfer).
 * **Phương pháp chính M1 (XLM-RoBERTa Fine-tuned)**: Fine-tune mô hình trên dữ liệu tiếng Việt sạch đã xử lý lỗi.
-  * *Tham số*: 2 epochs, learning rate = 2e-5, batch size = 8, sliding window stride = 64.
+  * *Tham số*: 3 epochs, learning rate = 2e-5, batch size = 32 , max_length 384
 * **Kịch bản thuyết trình (Speaker Notes)**: *"Chúng em xây dựng baseline là XLM-RoBERTa gốc chưa fine-tune. Phương pháp chính M1 của nhóm là fine-tune XLM-RoBERTa trên tập dữ liệu tiếng Việt sạch của ViSpanExtractQA để tăng cường độ chính xác..."*
 
 ---
