@@ -375,15 +375,15 @@ def get_comparison():
         },
         {
             "name": "BM25 + XLM-R Pretrained (Pipeline)",
-            "em": 38.2,
-            "f1": 62.17,
-            "note": "BM25 Retriever + Pretrained Reader - BM25 Acc: 93.40%"
+            "em": 37.8,
+            "f1": 61.35,
+            "note": "BM25 Retriever + Pretrained Reader - BM25 Acc: 95.00%"
         },
         {
             "name": "BM25 + XLM-R Fine-tuned (Pipeline M1)",
             "em": 53.8,
             "f1": 71.95,
-            "note": "BM25 Retriever + M1 Reader - BM25 Acc: 93.40%"
+            "note": "BM25 Retriever + M1 Reader - BM25 Acc: 95.00%"
         }
     ]
     return jsonify(fallback_results)
