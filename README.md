@@ -277,6 +277,6 @@ Dựa trên kết quả phân tích lỗi của mô hình M1, các loại lỗi 
 
 ### Hướng cải thiện đề xuất:
 * **Hậu xử lý (Post-processing)**: Xây dựng bộ lọc loại bỏ các chức danh, danh xưng tiếng Việt thông dụng (`ông`, `bà`, `Đại tướng`, `Giám đốc`...) khỏi câu trả lời được trích xuất.
-* **Mở rộng Context Length**: Tăng độ dài chuỗi tối đa (`max_length`) lên 384 hoặc 512 token trong quá trình huấn luyện và inference để giữ đầy đủ ngữ cảnh của các đoạn văn dài.
+* **Mở rộng Context Length**: Tăng độ dài chuỗi tối đa (`max_length`) lên 512 token trong quá trình huấn luyện và inference để giữ đầy đủ ngữ cảnh của các đoạn văn dài.
 
 
